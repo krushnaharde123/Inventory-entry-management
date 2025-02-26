@@ -53,6 +53,8 @@ document.addEventListener('DOMContentLoaded', function () {
     let materialData = [];
     let allCartonEntries = [];
     let lastCartonEntry = null;
+    let showAllMcbEntries = false;
+    let showAllCartonEntries = false;
 
     // Breaking capacity data
     const breakingCapacityData = {
@@ -128,25 +130,6 @@ document.addEventListener('DOMContentLoaded', function () {
         locationInput.value = '';
     }
 
-    function displayLastMcbEntry() {
-        if (!document.getElementById('last-entry-table')?.querySelector('tbody')) return;
-        const lastMcbEntryTableBody = document.getElementById('last-entry-table').querySelector('tbody');
-        lastMcbEntryTableBody.innerHTML = '';
-        if (lastEntry && lastEntry.type === 'mcb') {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${lastEntry.polarity}</td>
-                <td>${lastEntry.rating}</td>
-                <td>${lastEntry.productFamily}</td>
-                <td>${lastEntry.breakingCapacity}</td>
-                <td>${lastEntry.quantity}</td>
-                <td>${lastEntry.location}</td>
-                <td><button class="edit-entry" data-id="${lastEntry.id}">Edit</button></td>
-            `;
-            lastMcbEntryTableBody.appendChild(row);
-        }
-    }
-
     function displayMcbEntries() {
         if (!entryTableBody) return;
         entryTableBody.innerHTML = '';
@@ -186,15 +169,12 @@ document.addEventListener('DOMContentLoaded', function () {
             locationInput.value = entry.location;
 
             lastEntry = entry;
-            displayLastMcbEntry();
+            displayMcbEntries();
         }
     }
 
     function previewInventoryFile() {
-        if (allEntries.length === 0) {
-            alert('No entries to preview.');
-            return;
-        }
+        showAllMcbEntries = true;
         displayMcbEntries(); // Called here to display all entry
         generateInventoryFileButton.style.display = 'inline-block';
     }
@@ -217,12 +197,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Create a Blob from the CSV content
             const blob = new Blob([csvContent], { type: 'text/csv' });
+             const metadata = {
+                contentType: 'text/csv'
+            };
 
             // Create a reference to the Firebase Storage location where you want to save the file
             const storageRef = ref(storage, `mcbFiles/${fileName}.csv`);
 
             // Upload the file to Firebase Storage
-            uploadBytes(storageRef, blob)
+            uploadBytes(storageRef, blob, metadata)
                 .then((snapshot) => {
                     console.log('Uploaded a blob or file!');
                     // Get the download URL
@@ -320,7 +303,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        const entry = {
+         const entry = {
             type: 'carton',
             number,
             description,
@@ -329,23 +312,6 @@ document.addEventListener('DOMContentLoaded', function () {
             timestamp: new Date().toISOString()
         };
         addEntryToServer(entry);
-    }
-
-    function displayLastCartonEntry() {
-        if (!document.getElementById('last-carton-entry-table')?.querySelector('tbody')) return;
-        const lastCartonEntryTableBody = document.getElementById('last-carton-entry-table').querySelector('tbody');
-        lastCartonEntryTableBody.innerHTML = '';
-        if (lastEntry && lastEntry.type === 'carton') {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${lastEntry.number}</td>
-                <td>${lastEntry.description}</td>
-                <td>${lastEntry.quantity}</td>
-                <td>${lastEntry.location}</td>
-                <td><button class="edit-carton-entry" data-id="${lastEntry.id}">Edit</button></td>
-            `;
-            lastCartonEntryTableBody.appendChild(row);
-        }
     }
 
     function displayCartonEntries() {
@@ -381,15 +347,12 @@ document.addEventListener('DOMContentLoaded', function () {
             cartonLocationInput.value = entry.location;
 
             lastEntry = entry;
-            displayLastCartonEntry();
+            displayCartonEntries();
         }
     }
 
     function previewCartonFile() {
-        if (allCartonEntries.length === 0) {
-            alert('No entries to preview.');
-            return;
-        }
+        showAllCartonEntries = true;
         displayCartonEntries(); // Called here to display all entries
         saveCartonFileButton.style.display = 'inline-block';
     }
@@ -412,12 +375,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Create a Blob from the CSV content
             const blob = new Blob([csvContent], { type: 'text/csv' });
+             const metadata = {
+                contentType: 'text/csv'
+            };
 
             // Create a reference to the Firebase Storage location where you want to save the file
             const storageRef = ref(storage, `cartonFiles/${fileName}.csv`);
 
             // Upload the file to Firebase Storage
-            uploadBytes(storageRef, blob)
+            uploadBytes(storageRef, blob, metadata)
                 .then((snapshot) => {
                     console.log('Uploaded a blob or file!');
                     // Get the download URL
@@ -528,11 +494,8 @@ document.addEventListener('DOMContentLoaded', function () {
         listFiles('carton', cartonTabTableBody);
     }
 
-    // Fetch initial inventory data on page load
-    window.fetchInventory();
-
-    // Function to save MCB entries to Firebase (called from Physical Counting page)
-    window.saveMcbEntries = async function () {
+     // Function to save MCB entries to localStorage (called from Physical Counting page)
+     window.saveMcbEntries = async function () {
         if (allEntries.length === 0) {
             alert('No MCB entries to save.');
             return;
@@ -545,17 +508,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
             const csvHeader = "Polarity,Rating,Product Family,Breaking Capacity,Quantity,Location";
-            const csvRows = allEntries.filter(entry => entry.type === 'mcb').map(entry => `${entry.polarity},${entry.rating},${entry.productFamily},${entry.breakingCapacity},${entry.quantity},${entry.location}`).join('\n');
+            const csvRows = allEntries.map(entry => `${entry.polarity},${entry.rating},${entry.productFamily},${entry.breakingCapacity},${entry.quantity},${entry.location}`).join('\n');
             const csvContent = `${csvHeader}\n${csvRows}`;
 
             // Create a Blob from the CSV content
             const blob = new Blob([csvContent], { type: 'text/csv' });
+             const metadata = {
+                contentType: 'text/csv'
+            };
 
             // Create a reference to the Firebase Storage location where you want to save the file
             const storageRef = ref(storage, `mcbFiles/${fileName}.csv`);
 
             // Upload the file to Firebase Storage
-            await uploadBytes(storageRef, blob);
+            await uploadBytes(storageRef, blob, metadata)
 
             alert('MCB entries saved to Firebase Storage successfully!');
             allEntries = [];
@@ -567,14 +533,12 @@ document.addEventListener('DOMContentLoaded', function () {
             alert("Failed to save MCB file to Firebase. Please check the console for errors.");
         }
     };
-
-    // Function to save Carton entries to Firebase (called from Physical Counting page)
-    window.saveCartonEntries = async function () {
-        if (allCartonEntries.length === 0) {
-            alert('No Carton entries to save.');
+     // Function to save Carton entries to localStorage (called from Physical Counting page)
+     window.saveCartonEntries = async function () {
+          if (allCartonEntries.length === 0) {
+            alert('No entries to generate.');
             return;
         }
-
         const fileName = prompt("Please enter the file name:", "carton");
         if (fileName === null || fileName === "") {
             return;
@@ -587,12 +551,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Create a Blob from the CSV content
             const blob = new Blob([csvContent], { type: 'text/csv' });
+             const metadata = {
+                contentType: 'text/csv'
+            };
 
             // Create a reference to the Firebase Storage location where you want to save the file
             const storageRef = ref(storage, `cartonFiles/${fileName}.csv`);
 
             // Upload the file to Firebase Storage
-            await uploadBytes(storageRef, blob);
+            await uploadBytes(storageRef, blob, metadata)
 
             alert('Carton entries saved to Firebase Storage successfully!');
             allCartonEntries = [];
@@ -604,8 +571,8 @@ document.addEventListener('DOMContentLoaded', function () {
             alert("Failed to save Carton file to Firebase. Please check the console for errors.");
         }
     };
-    // Firebase integration functions
-    window.fetchInventory = async function () {
+     // Firebase integration functions
+     window.fetchInventory = async function () {
         try {
             const inventoryCollection = collection(db, 'inventory');
             const snapshot = await getDocs(inventoryCollection);
@@ -621,18 +588,22 @@ document.addEventListener('DOMContentLoaded', function () {
             if (mcbEntries.length > 0) {
                 lastEntry = mcbEntries[mcbEntries.length - 1];
             }
+             else {
+                lastEntry = null;
+            }
             if (cartonEntries.length > 0) {
                 lastCartonEntry = cartonEntries[cartonEntries.length - 1];
             }
+             else {
+                lastCartonEntry = null;
+            }
             if (document.getElementById('entry-table')) {
                 displayMcbEntries();
-                displayLastMcbEntry();
             }
             if (document.getElementById('carton-entry-table')) {
                 displayCartonEntries();
-                displayLastCartonEntry();
             }
-            if (document.getElementById('physical-counting-table')) {
+             if (document.getElementById('physical-counting-table')) {
                 displayPhysicalCountingEntries();
             }
         } catch (error) {
@@ -643,7 +614,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function addEntryToServer(entry) {
         try {
-            const docRef = await addDoc(collection(db, 'inventory'), entry);
+             const inventoryCollection = collection(db, 'inventory');
+            const docRef = await addDoc(inventoryCollection, entry);
             entry.id = docRef.id; // Add the ID to the entry object
             await updateDoc(doc(db, 'inventory', docRef.id), {
                 id: docRef.id // Save the ID to Firebase
@@ -654,7 +626,7 @@ document.addEventListener('DOMContentLoaded', function () {
             alert('Failed to add entry: ' + error.message);
         }
     }
-    // Physical Counting Page
+     // Physical Counting Page
     function displayPhysicalCountingEntries() {
         if (!physicalCountingTableBody) return;
 
