@@ -1,5 +1,43 @@
 document.addEventListener('DOMContentLoaded', function () {
-    // MCB Entry Page Logic
+    // Firebase configuration
+    const firebaseConfig = {
+        apiKey: "<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyDXZDJGiNudokW6h04TornneQt5_xtep6Y",
+    authDomain: "inventory-management-b330b.firebaseapp.com",
+    projectId: "inventory-management-b330b",
+    storageBucket: "inventory-management-b330b.firebasestorage.app",
+    messagingSenderId: "863294594287",
+    appId: "1:863294594287:web:49b1e9567abe0939544f1a",
+    measurementId: "G-E7H9J01X63"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>",
+        authDomain: "your-project-id.firebaseapp.com",
+        projectId: "your-project-id",
+        storageBucket: "your-project-id.appspot.com",
+        messagingSenderId: "123456789012",
+        appId: "1:123456789012:web:a1b2c3d4e5f6g7h8i9j0",
+        measurementId: "G-ABCDEFGHIJ"
+    };
+
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    // Get references to HTML elements
     const productFamilySelect = document.getElementById('product-family');
     const breakingCapacitySelect = document.getElementById('breaking-capacity');
     const polaritySelect = document.getElementById('polarity');
@@ -10,9 +48,25 @@ document.addEventListener('DOMContentLoaded', function () {
     const previewInventoryFileButton = document.getElementById('preview-inventory-file');
     const generateInventoryFileButton = document.getElementById('generate-inventory-file');
     const addEntryButton = document.getElementById('add-entry');
+
+     const cartonMasterFileInput = document.getElementById('carton-master-file');
+    const materialDescriptionInput = document.getElementById('material-description');
+    const materialNumberInput = document.getElementById('material-number');
+    const materialList = document.getElementById('material-list');
+    const cartonQuantityInput = document.getElementById('carton-quantity');
+    const cartonLocationInput = document.getElementById('carton-location');
+    const cartonEntryTableBody = document.getElementById('carton-entry-table')?.querySelector('tbody');
+    const previewCartonFileButton = document.getElementById('preview-carton-file');
+    const saveCartonFileButton = document.getElementById('save-carton-file');
+    const addCartonEntryButton = document.getElementById('add-carton-entry');
+
     let allEntries = [];
     let lastEntry = null;
+    let materialData = [];
+    let allCartonEntries = [];
+    let lastCartonEntry = null;
 
+    // Breaking capacity data
     const breakingCapacityData = {
         '5SL1': ['3KA'],
         '5SJ': ['6KA'],
@@ -28,11 +82,19 @@ document.addEventListener('DOMContentLoaded', function () {
         '5SL7-K': ['15KA']
     };
 
+    // Event listeners
     productFamilySelect?.addEventListener('change', updateBreakingCapacityOptions);
     addEntryButton?.addEventListener('click', addEntry);
     previewInventoryFileButton?.addEventListener('click', previewInventoryFile);
     generateInventoryFileButton?.addEventListener('click', generateInventoryFileLocal);
 
+    cartonMasterFileInput?.addEventListener('change', handleFileUpload);
+    materialNumberInput?.addEventListener('input', handleMaterialNumberInput);
+    addCartonEntryButton?.addEventListener('click', addCartonEntry);
+    previewCartonFileButton?.addEventListener('click', previewCartonFile);
+    saveCartonFileButton?.addEventListener('click', saveCartonFileLocal);
+
+    // Functions for MCB Entry
     function updateBreakingCapacityOptions() {
         const selectedFamily = productFamilySelect.value;
         const capacities = breakingCapacityData[selectedFamily] || [];
@@ -59,9 +121,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const entry = { polarity, rating, productFamily, breakingCapacity, quantity, location };
-        allEntries.push(entry);
-        lastEntry = entry;
-        displayLastMcbEntry(); // Added this line
+        addEntryToServer(entry);
         // Reset form fields
         polaritySelect.value = '';
         ratingSelect.value = '';
@@ -88,7 +148,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Function to display MCB entries
     function displayMcbEntries() {
         entryTableBody.innerHTML = '';
         allEntries.forEach((entry, index) => { // Loop through all entries
@@ -137,7 +196,6 @@ document.addEventListener('DOMContentLoaded', function () {
         generateInventoryFileButton.style.display = 'inline-block';
     }
 
-    // Save all entries to a single file in localStorage.
     function generateInventoryFileLocal() {
         if (allEntries.length === 0) {
             alert('No entries to generate.');
@@ -165,26 +223,7 @@ document.addEventListener('DOMContentLoaded', function () {
         listFiles('mcb', document.querySelector('#mcb-tab tbody'));
     }
 
-    // Carton Entry Page Logic
-    const cartonMasterFileInput = document.getElementById('carton-master-file');
-    const materialDescriptionInput = document.getElementById('material-description');
-    const materialNumberInput = document.getElementById('material-number');
-    const materialList = document.getElementById('material-list');
-    const cartonQuantityInput = document.getElementById('carton-quantity');
-    const cartonLocationInput = document.getElementById('carton-location');
-    const cartonEntryTableBody = document.getElementById('carton-entry-table')?.querySelector('tbody');
-    const previewCartonFileButton = document.getElementById('preview-carton-file');
-    const saveCartonFileButton = document.getElementById('save-carton-file');
-    const addCartonEntryButton = document.getElementById('add-carton-entry');
-    let allCartonEntries = [];
-     let lastCartonEntry = null;
-
-    cartonMasterFileInput?.addEventListener('change', handleFileUpload);
-    materialNumberInput?.addEventListener('input', handleMaterialNumberInput);
-    addCartonEntryButton?.addEventListener('click', addCartonEntry);
-    previewCartonFileButton?.addEventListener('click', previewCartonFile);
-    saveCartonFileButton?.addEventListener('click', saveCartonFileLocal);
-
+    // Functions for Carton Entry
     function handleFileUpload(event) {
         const file = event.target.files[0];
         if (file) {
@@ -244,7 +283,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-
     function addCartonEntry() {
         const number = materialNumberInput.value;
         const description = materialDescriptionInput.value;
@@ -257,9 +295,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const entry = { number, description, quantity, location };
-        allCartonEntries.push(entry);
-        lastCartonEntry = entry;
-        displayLastCartonEntry();//displayCartonEntries(); // Removed this line
+        addEntryToServer(entry);
+        //displayCartonEntries();// Removed this line
 
         materialNumberInput.value = '';
         materialDescriptionInput.value = '';
@@ -324,7 +361,6 @@ document.addEventListener('DOMContentLoaded', function () {
         saveCartonFileButton.style.display = 'inline-block';
     }
 
-    // Save the Carton file in localStorage
     function saveCartonFileLocal() {
         if (allCartonEntries.length === 0) {
             alert('No entries to generate.');
@@ -350,8 +386,47 @@ document.addEventListener('DOMContentLoaded', function () {
         listFiles('carton', document.querySelector('#carton-tab tbody'));
     }
 
+    // Firebase integration functions
+    async function fetchInventory() {
+        try {
+            const inventoryCollection = db.collection('inventory');
+            const snapshot = await inventoryCollection.get();
+            allEntries = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            displayMcbEntries();
+        } catch (error) {
+            console.error('Error fetching inventory:', error.message);
+            alert('Failed to load inventory data: ' + error.message);
+        }
+    }
+
+    async function addEntryToServer(entry) {
+        try {
+            await db.collection('inventory').add(entry);
+            await fetchInventory(); // Refresh the inventory table
+        } catch (error) {
+            console.error('Error adding entry:', error.message);
+            alert('Failed to add entry: ' + error.message);
+        }
+    }
+
+    // Authentication state listener
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            // User is signed in
+            console.log('User is signed in:', user.email);
+            fetchInventory(); // Load inventory after login
+        } else {
+            // User is signed out
+            console.log('User is signed out');
+            // Optionally, redirect to the login page
+            // window.location.href = '/login.html';
+        }
+    });
     // Listing files from localStorage on the Physical Counting page
-    function listFiles(type, tableBody) {
+     function listFiles(type, tableBody) {
         tableBody.innerHTML = '';
         let files = [];
         if (type === 'mcb') {
