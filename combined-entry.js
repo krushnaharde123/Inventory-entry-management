@@ -178,6 +178,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const firstSheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheetName];
                 materialData = XLSX.utils.sheet_to_json(worksheet);
+                console.log("Parsed Excel data:", materialData); // Inspect the data
                 populateMaterialList();
             };
             reader.readAsArrayBuffer(file);
@@ -193,20 +194,36 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    function handleMaterialDescriptionInput() {
+   function handleMaterialDescriptionInput() {
         const description = materialDescriptionInput.value;
+
+        // Define possible keys for material description and number
+        const descriptionKey = 'Material Description';
+        const numberKey = 'Material Number';
+
         const material = materialData.find(item => {
             // Normalize both the input and the material description for comparison
             const normalizedDescription = description.trim().toLowerCase();
-            const normalizedMaterialDescription = String(item['Material Description']).trim().toLowerCase(); // Ensure it's a string
+            const normalizedMaterialDescription = String(item[descriptionKey]).trim().toLowerCase(); // Ensure it's a string
+            console.log(`Comparing "${normalizedDescription}" with "${normalizedMaterialDescription}"`);
 
             return normalizedDescription === normalizedMaterialDescription;
         });
 
         if (material) {
-            materialNumberInput.value = material['Material Number'];
+            const materialNumber = material[numberKey];
+            console.log("Found matching material:", material);
+            console.log("Material number:", materialNumber);
+
+            if (materialNumber !== undefined && materialNumber !== null) {
+                materialNumberInput.value = materialNumber;
+            } else {
+                materialNumberInput.value = '';
+                console.warn("Material number is undefined or null in the data.");
+            }
         } else {
             materialNumberInput.value = '';
+            console.log("No matching material found.");
         }
     }
 
