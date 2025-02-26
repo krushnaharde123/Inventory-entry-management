@@ -1,24 +1,23 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
+import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
+
 document.addEventListener('DOMContentLoaded', function () {
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-analytics.js";
-  
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyDXZDJGiNudokW6h04TornneQt5_xtep6Y",
-    authDomain: "inventory-management-b330b.firebaseapp.com",
-    projectId: "inventory-management-b330b",
-    storageBucket: "inventory-management-b330b.firebasestorage.app",
-    messagingSenderId: "863294594287",
-    appId: "1:863294594287:web:49b1e9567abe0939544f1a",
-    measurementId: "G-E7H9J01X63"
-  };
+    // Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyDXZDJGiNudokW6h04TornneQt5_xtep6Y",
+        authDomain: "inventory-management-b330b.firebaseapp.com",
+        projectId: "inventory-management-b330b",
+        storageBucket: "inventory-management-b330b.firebasestorage.app",
+        messagingSenderId: "863294594287",
+        appId: "1:863294594287:web:49b1e9567abe0939544f1a",
+        measurementId: "G-E7H9J01X63"
+    };
 
     // Initialize Firebase
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    const auth = firebase.auth();
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
 
     // Get references to HTML elements
     const productFamilySelect = document.getElementById('product-family');
@@ -32,7 +31,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const generateInventoryFileButton = document.getElementById('generate-inventory-file');
     const addEntryButton = document.getElementById('add-entry');
 
-     const cartonMasterFileInput = document.getElementById('carton-master-file');
+    const cartonMasterFileInput = document.getElementById('carton-master-file');
     const materialDescriptionInput = document.getElementById('material-description');
     const materialNumberInput = document.getElementById('material-number');
     const materialList = document.getElementById('material-list');
@@ -194,12 +193,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const csvRows = allEntries.map(entry => `${entry.polarity},${entry.rating},${entry.productFamily},${entry.breakingCapacity},${entry.quantity},${entry.location}`).join('\n');
         const csvContent = `${csvHeader}\n${csvRows}`;
 
-        // Save file content in localStorage under "mcbFiles".
-        let mcbFiles = JSON.parse(localStorage.getItem('mcbFiles') || '[]');
-        const createdAt = new Date().toISOString();
-        mcbFiles.push({ fileName: `${fileName}.csv`, content: csvContent, createdAt: createdAt });
-        localStorage.setItem('mcbFiles', JSON.stringify(mcbFiles));
-
         alert('MCB entries saved to local storage successfully!');
         allEntries = [];
         displayMcbEntries();
@@ -232,7 +225,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-   function handleMaterialNumberInput() {
+    function handleMaterialNumberInput() {
         const number = materialNumberInput.value;
 
         // Define possible keys for material description and number
@@ -278,7 +271,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const entry = { number, description, quantity, location };
         addEntryToServer(entry);
-        //displayCartonEntries();// Removed this line
 
         materialNumberInput.value = '';
         materialDescriptionInput.value = '';
@@ -286,7 +278,7 @@ document.addEventListener('DOMContentLoaded', function () {
         cartonLocationInput.value = '';
     }
 
-     function displayLastCartonEntry() {
+    function displayLastCartonEntry() {
         cartonEntryTableBody.innerHTML = '';
         if (lastCartonEntry) {
             const row = document.createElement('tr');
@@ -317,14 +309,14 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Edit carton entry functionality
-    cartonEntryTableBody?.addEventListener('click', function(event) {
+    cartonEntryTableBody?.addEventListener('click', function (event) {
         if (event.target.classList.contains('edit-carton-entry')) {
             editCartonEntry();
         }
     });
 
     function editCartonEntry() {
-         if (lastCartonEntry) {
+        if (lastCartonEntry) {
             materialNumberInput.value = lastCartonEntry.number;
             materialDescriptionInput.value = lastCartonEntry.description;
             cartonQuantityInput.value = lastCartonEntry.quantity;
@@ -357,22 +349,16 @@ document.addEventListener('DOMContentLoaded', function () {
         const csvRows = allCartonEntries.map(entry => `${entry.number},${entry.description},${entry.quantity},${entry.location}`).join('\n');
         const csvContent = `${csvHeader}\n${csvRows}`;
 
-        // Save file content in localStorage under "cartonFiles".
-        let cartonFiles = JSON.parse(localStorage.getItem('cartonFiles') || '[]');
-        const createdAt = new Date().toISOString();
-        cartonFiles.push({ fileName: `${fileName}.csv`, content: csvContent, createdAt: createdAt });
-        localStorage.setItem('cartonFiles', JSON.stringify(cartonFiles));
-
         alert('Carton entries saved to local storage successfully!');
         allCartonEntries = [];
         displayCartonEntries();
     }
 
     // Firebase integration functions
-    async function fetchInventory() {
+    window.fetchInventory = async function () {
         try {
-            const inventoryCollection = db.collection('inventory');
-            const snapshot = await inventoryCollection.get();
+            const inventoryCollection = collection(db, 'inventory');
+            const snapshot = await getDocs(inventoryCollection);
             allEntries = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
@@ -383,12 +369,12 @@ document.addEventListener('DOMContentLoaded', function () {
             console.error('Error fetching inventory:', error.message);
             alert('Failed to load inventory data: ' + error.message);
         }
-    }
+    };
 
     async function addEntryToServer(entry) {
         try {
-            await db.collection('inventory').add(entry);
-            await fetchInventory(); // Refresh the inventory table
+            await addDoc(collection(db, 'inventory'), entry);
+            await window.fetchInventory(); // Refresh the inventory table
         } catch (error) {
             console.error('Error adding entry:', error.message);
             alert('Failed to add entry: ' + error.message);
@@ -398,7 +384,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Authentication functions
     async function signUp(email, password) {
         try {
-            await auth.createUserWithEmailAndPassword(email, password);
+            await createUserWithEmailAndPassword(auth, email, password);
             alert('Signup successful!');
             // Optionally, redirect to the inventory page
             window.location.href = 'index.html';
@@ -410,7 +396,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function logIn(email, password) {
         try {
-            await auth.signInWithEmailAndPassword(email, password);
+            await signInWithEmailAndPassword(auth, email, password);
             alert('Login successful!');
             // Redirect to the inventory page
             window.location.href = 'index.html';
@@ -422,7 +408,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function logOut() {
         try {
-            await auth.signOut();
+            await signOut(auth);
             alert('Logout successful!');
             // Redirect to the login page
             window.location.href = 'login.html';
@@ -433,11 +419,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Authentication state listener
-    auth.onAuthStateChanged(user => {
+    onAuthStateChanged(auth, user => {
         if (user) {
             // User is signed in
             console.log('User is signed in:', user.email);
-            fetchInventory(); // Load inventory after login
+            window.fetchInventory(); // Load inventory after login
         } else {
             // User is signed out
             console.log('User is signed out');
