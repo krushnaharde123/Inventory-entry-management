@@ -1,46 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="combined-entry.js" type="module" defer></script>
 </head>
+
 <body>
-    <div class="header">
-        <div class="logo">SIEMENS</div>
-    </div>
-    <div class="content">
-        <h1>Login</h1>
+    <div class="login-container">
+        <h2>Login</h2>
         <form id="login-form">
             <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" required>
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
             </div>
             <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" required>
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
             </div>
-            <button type="submit">Login</button>
+            <button type="submit">Log In</button>
         </form>
-        <p>Don't have an account? <a href="signup.html">Sign up</a></p>
     </div>
-    <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-auth-compat.js"></script>
-    <script src="combined-entry.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const loginForm = document.getElementById('login-form');
 
-            loginForm.addEventListener('submit', function (event) {
-                event.preventDefault();
-                const email = document.getElementById('email').value;
-                const password = document.getElementById('password').value;
-
-                logIn(email, password); // Call the login function from combined-entry.js
-            });
+    <script type="module">
+        document.getElementById('login-form').addEventListener('submit', function (event) {
+            event.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            window.logIn(email, password); // Call window.logIn
         });
     </script>
 </body>
+
 </html>
