@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCB Entry</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="combined-entry.js" defer></script>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">SIEMENS</div>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="entry.html">MCB Entry</a></li>
+                <li><a href="carton-entry.html">Carton Entry</a></li>
+                <li><a href="physical-counting.html">Physical Counting</a></li>
+            </ul>
+        </nav>
+    </div>
+    <div class="sidebar">
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="entry.html">MCB Entry</a></li>
+            <li><a href="carton-entry.html">Carton Entry</a></li>
+            <li><a href="physical-counting.html">Physical Counting</a></li>
+        </ul>
+    </div>
+    <div class="content">
+        <h1>MCB Entry</h1>
+        <form id="mcb-entry-form">
+            <div class="form-group">
+                <label for="polarity">Polarity</label>
+                <select id="polarity">
+                    <option value="1P">1P</option>
+                    <option value="2P">2P</option>
+                    <option value="3P">3P</option>
+                    <option value="4P">4P</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="rating">Rating</label>
+                <select id="rating">
+                    <option value="0.5A">0.5A</option>
+                    <option value="1A">1A</option>
+                    <option value="2A">2A</option>
+                    <option value="3A">3A</option>
+                    <option value="4A">4A</option>
+                    <option value="6A">6A</option>
+                    <option value="8A">8A</option>
+                    <option value="10A">10A</option>
+                    <option value="13A">13A</option>
+                    <option value="16A">16A</option>
+                    <option value="20A">20A</option>
+                    <option value="25A">25A</option>
+                    <option value="32A">32A</option>
+                    <option value="40A">40A</option>
+                    <option value="50A">50A</option>
+                    <option value="63A">63A</option>
+                    <option value="70A">70A</option>
+                    <option value="80A">80A</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="product-family">Product Family</label>
+                <select id="product-family">
+                    <option value="5SL1">5SL1</option>
+                    <option value="5SJ">5SJ</option>
+                    <option value="Mexico">Mexico</option>
+                    <option value="5SL6">5SL6</option>
+                    <option value="5SL4">5SL4</option>
+                    <option value="ELSA-2">ELSA-2</option>
+                    <option value="ELSA-1">ELSA-1</option>
+                    <option value="5SL7">5SL7</option>
+                    <option value="K">K</option>
+                    <option value="MB">MB</option>
+                    <option value="MB Europe">MB Europe</option>
+                    <option value="5SL7-K">5SL7-K</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="breaking-capacity">Breaking Capacity</label>
+                <select id="breaking-capacity"></select>
+            </div>
+            <div class="form-group">
+                <label for="quantity">Quantity</label>
+                <input type="number" id="quantity" min="1">
+            </div>
+            <div class="form-group">
+                <label for="location">Location</label>
+                <input type="text" id="location" placeholder="Enter location">
+            </div>
+            <button type="button" id="add-entry">Add Entry</button>
+        </form>
+        <table id="entry-table">
+            <thead>
+                <tr>
+                    <th>Polarity</th>
+                    <th>Rating</th>
+                    <th>Product Family</th>
+                    <th>Breaking Capacity</th>
+                    <th>Quantity</th>
+                    <th>Location</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <div class="action-buttons">
+            <button type="button" id="preview-inventory-file">Preview Inventory File</button>
+            <button type="button" id="generate-inventory-file" style="display: none;">Generate Inventory File</button>
+        </div>
+    </div>
+</body>
+</html>
