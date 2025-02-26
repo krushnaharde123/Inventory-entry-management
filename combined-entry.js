@@ -444,7 +444,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Listing files from localStorage on the Physical Counting page
+    // Listing files from Firebase Storage on the Physical Counting page
     function listFiles(type, tableBody) {
         tableBody.innerHTML = '';
         const storageRef = ref(storage, `${type}Files/`);
@@ -527,8 +527,12 @@ document.addEventListener('DOMContentLoaded', function () {
     if (cartonTab) {
         listFiles('carton', cartonTabTableBody);
     }
-     // Function to save MCB entries to localStorage (called from Physical Counting page)
-     window.saveMcbEntries = function () {
+
+    // Fetch initial inventory data on page load
+    window.fetchInventory();
+
+    // Function to save MCB entries to Firebase (called from Physical Counting page)
+    window.saveMcbEntries = async function () {
         if (allEntries.length === 0) {
             alert('No MCB entries to save.');
             return;
@@ -539,45 +543,204 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        const csvHeader = "Polarity,Rating,Product Family,Breaking Capacity,Quantity,Location";
-        const csvRows = allEntries.map(entry => `${entry.polarity},${entry.rating},${entry.productFamily},${entry.breakingCapacity},${entry.quantity},${entry.location}`).join('\n');
-        const csvContent = `${csvHeader}\n${csvRows}`;
+        try {
+            const csvHeader = "Polarity,Rating,Product Family,Breaking Capacity,Quantity,Location";
+            const csvRows = allEntries.filter(entry => entry.type === 'mcb').map(entry => `${entry.polarity},${entry.rating},${entry.productFamily},${entry.breakingCapacity},${entry.quantity},${entry.location}`).join('\n');
+            const csvContent = `${csvHeader}\n${csvRows}`;
 
-        // Save file content in localStorage under "mcbFiles".
-        let mcbFiles = JSON.parse(localStorage.getItem('mcbFiles') || '[]');
-        const createdAt = new Date().toISOString();
-        mcbFiles.push({ fileName: `${fileName}.csv`, content: csvContent, createdAt: createdAt });
-        localStorage.setItem('mcbFiles', JSON.stringify(mcbFiles));
+            // Create a Blob from the CSV content
+            const blob = new Blob([csvContent], { type: 'text/csv' });
 
-        alert('MCB entries saved to local storage successfully!');
-        // Clear all entries after saving
-        allEntries = [];
-        displayMcbEntries(); // Clear the table
-        listFiles('mcb', document.querySelector('#mcb-tab tbody'));
+            // Create a reference to the Firebase Storage location where you want to save the file
+            const storageRef = ref(storage, `mcbFiles/${fileName}.csv`);
+
+            // Upload the file to Firebase Storage
+            await uploadBytes(storageRef, blob);
+
+            alert('MCB entries saved to Firebase Storage successfully!');
+            allEntries = [];
+            displayMcbEntries();
+            listFiles('mcb', mcbTabTableBody);
+
+        } catch (error) {
+            console.error("Error saving MCB file to Firebase:", error);
+            alert("Failed to save MCB file to Firebase. Please check the console for errors.");
+        }
     };
-     // Function to save Carton entries to localStorage (called from Physical Counting page)
-     window.saveCartonEntries = function () {
-          if (allCartonEntries.length === 0) {
-            alert('No entries to generate.');
+
+    // Function to save Carton entries to Firebase (called from Physical Counting page)
+    window.saveCartonEntries = async function () {
+        if (allCartonEntries.length === 0) {
+            alert('No Carton entries to save.');
             return;
         }
+
         const fileName = prompt("Please enter the file name:", "carton");
         if (fileName === null || fileName === "") {
             return;
         }
 
-        const csvHeader = "Material Number,Material Description,Quantity,Location";
-        const csvRows = allCartonEntries.map(entry => `${entry.number},${entry.description},${entry.quantity},${entry.location}`).join('\n');
-        const csvContent = `${csvHeader}\n${csvRows}`;
+        try {
+            const csvHeader = "Material Number,Material Description,Quantity,Location";
+            const csvRows = allCartonEntries.map(entry => `${entry.number},${entry.description},${entry.quantity},${entry.location}`).join('\n');
+            const csvContent = `${csvHeader}\n${csvRows}`;
 
-        let cartonFiles = JSON.parse(localStorage.getItem('cartonFiles') || '[]');
-        const createdAt = new Date().toISOString();
-        cartonFiles.push({ fileName: `${fileName}.csv`, content: csvContent, createdAt: createdAt });
-        localStorage.setItem('cartonFiles', JSON.stringify(cartonFiles));
+            // Create a Blob from the CSV content
+            const blob = new Blob([csvContent], { type: 'text/csv' });
 
-        alert('Carton entries saved to local storage successfully!');
-        allCartonEntries = [];
-        displayCartonEntries();
-        listFiles('carton', document.querySelector('#carton-tab tbody'));
+            // Create a reference to the Firebase Storage location where you want to save the file
+            const storageRef = ref(storage, `cartonFiles/${fileName}.csv`);
+
+            // Upload the file to Firebase Storage
+            await uploadBytes(storageRef, blob);
+
+            alert('Carton entries saved to Firebase Storage successfully!');
+            allCartonEntries = [];
+            displayCartonEntries();
+            listFiles('carton', cartonTabTableBody);
+
+        } catch (error) {
+            console.error("Error saving Carton file to Firebase:", error);
+            alert("Failed to save Carton file to Firebase. Please check the console for errors.");
+        }
     };
+    // Firebase integration functions
+    window.fetchInventory = async function () {
+        try {
+            const inventoryCollection = collection(db, 'inventory');
+            const snapshot = await getDocs(inventoryCollection);
+            allEntries = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+
+            // After fetching the data, update allEntries, lastEntry, and lastCartonEntry
+            const mcbEntries = allEntries.filter(entry => entry.type === 'mcb');
+            const cartonEntries = allEntries.filter(entry => entry.type === 'carton');
+
+            if (mcbEntries.length > 0) {
+                lastEntry = mcbEntries[mcbEntries.length - 1];
+            }
+            if (cartonEntries.length > 0) {
+                lastCartonEntry = cartonEntries[cartonEntries.length - 1];
+            }
+            if (document.getElementById('entry-table')) {
+                displayMcbEntries();
+                displayLastMcbEntry();
+            }
+            if (document.getElementById('carton-entry-table')) {
+                displayCartonEntries();
+                displayLastCartonEntry();
+            }
+            if (document.getElementById('physical-counting-table')) {
+                displayPhysicalCountingEntries();
+            }
+        } catch (error) {
+            console.error('Error fetching inventory:', error.message);
+            alert('Failed to load inventory data: ' + error.message);
+        }
+    };
+
+    async function addEntryToServer(entry) {
+        try {
+            const docRef = await addDoc(collection(db, 'inventory'), entry);
+            entry.id = docRef.id; // Add the ID to the entry object
+            await updateDoc(doc(db, 'inventory', docRef.id), {
+                id: docRef.id // Save the ID to Firebase
+            });
+            await window.fetchInventory(); // Refresh the inventory table
+        } catch (error) {
+            console.error('Error adding entry:', error.message);
+            alert('Failed to add entry: ' + error.message);
+        }
+    }
+    // Physical Counting Page
+    function displayPhysicalCountingEntries() {
+        if (!physicalCountingTableBody) return;
+
+        physicalCountingTableBody.innerHTML = '';
+        allEntries.forEach(entry => {
+            const row = document.createElement('tr');
+            let entryDetails = '';
+
+            if (entry.type === 'mcb') {
+                entryDetails = `
+                    <td>MCB</td>
+                    <td>${entry.polarity}</td>
+                    <td>${entry.rating}</td>
+                    <td>${entry.productFamily}</td>
+                    <td>${entry.breakingCapacity}</td>
+                    <td>${entry.quantity}</td>
+                    <td>${entry.location}</td>
+                `;
+            } else if (entry.type === 'carton') {
+                entryDetails = `
+                    <td>Carton</td>
+                    <td>${entry.number}</td>
+                    <td>${entry.description}</td>
+                    <td>${entry.quantity}</td>
+                    <td>${entry.location}</td>
+                    <td colspan="2"></td>
+                `;
+            }
+
+            row.innerHTML = `
+                ${entryDetails}
+                <td>${new Date(entry.timestamp).toLocaleString()}</td>
+            `;
+            physicalCountingTableBody.appendChild(row);
+        });
+    }
+    // Authentication functions
+    window.signUp = async function (email, password) {
+        try {
+            await createUserWithEmailAndPassword(auth, email, password);
+            alert('Signup successful!');
+            // Optionally, redirect to the inventory page
+            window.location.href = 'index.html';
+        } catch (error) {
+            console.error('Signup error:', error.message);
+            alert('Signup failed: ' + error.message);
+        }
+    };
+
+    window.logIn = async function (email, password) {
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+            alert('Login successful!');
+            // Redirect to the inventory page
+            window.location.href = 'index.html';
+        } catch (error) {
+            console.error('Login error:', error.message);
+            alert('Login failed: ' + error.message);
+        }
+    };
+
+    window.logOut = async function () {
+        try {
+            await signOut(auth);
+            alert('Logout successful!');
+            // Redirect to the login page
+            window.location.href = 'login.html';
+        } catch (error) {
+            console.error('Logout error:', error.message);
+            alert('Logout failed: ' + error.message);
+        }
+    };
+
+    // Authentication state listener
+    onAuthStateChanged(auth, user => {
+        if (user) {
+            // User is signed in
+            console.log('User is signed in:', user.email);
+            window.fetchInventory(); // Load inventory after login
+        } else {
+            // User is signed out
+            console.log('User is signed out');
+            // Redirect to the login page only if not already on login page
+            if (window.location.pathname !== '/login.html') {
+                window.location.href = 'login.html';
+            }
+        }
+    });
 });
