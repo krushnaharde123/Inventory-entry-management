@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <td><button class="edit-entry" data-index="${index}">Edit</button></td>
             `;
             entryTableBody.appendChild(row);
-        }
+        });
     }
 
     // Edit entry functionality
@@ -124,9 +124,6 @@ document.addEventListener('DOMContentLoaded', function () {
             quantityInput.value = lastEntry.quantity;
             locationInput.value = lastEntry.location;
 
-            // Remove the last entry from the array and clear the table display
-            allEntries = allEntries.filter(entry => entry !== lastEntry);
-            lastEntry = null;
             displayLastMcbEntry();
         }
     }
@@ -314,8 +311,6 @@ document.addEventListener('DOMContentLoaded', function () {
             cartonQuantityInput.value = lastCartonEntry.quantity;
             cartonLocationInput.value = lastCartonEntry.location;
 
-            allCartonEntries = allCartonEntries.filter(entry => entry !== lastCartonEntry);
-            lastCartonEntry = null;
             displayLastCartonEntry();
         }
     }
