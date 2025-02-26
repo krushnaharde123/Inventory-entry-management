@@ -395,7 +395,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 id: doc.id,
                 ...doc.data()
             }));
-            displayMcbEntries();
+             displayMcbEntries();
+             displayCartonEntries();
         } catch (error) {
             console.error('Error fetching inventory:', error.message);
             alert('Failed to load inventory data: ' + error.message);
@@ -412,6 +413,42 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // Authentication functions
+    async function signUp(email, password) {
+        try {
+            await auth.createUserWithEmailAndPassword(email, password);
+            alert('Signup successful!');
+            // Optionally, redirect to the inventory page
+            window.location.href = 'index.html';
+        } catch (error) {
+            console.error('Signup error:', error.message);
+            alert('Signup failed: ' + error.message);
+        }
+    }
+
+    async function logIn(email, password) {
+        try {
+            await auth.signInWithEmailAndPassword(email, password);
+            alert('Login successful!');
+            // Redirect to the inventory page
+            window.location.href = 'index.html';
+        } catch (error) {
+            console.error('Login error:', error.message);
+            alert('Login failed: ' + error.message);
+        }
+    }
+
+    async function logOut() {
+        try {
+            await auth.signOut();
+            alert('Logout successful!');
+            // Redirect to the login page
+            window.location.href = 'login.html';
+        } catch (error) {
+            console.error('Logout error:', error.message);
+            alert('Logout failed: ' + error.message);
+        }
+    }
     // Authentication state listener
     auth.onAuthStateChanged(user => {
         if (user) {
@@ -421,8 +458,8 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             // User is signed out
             console.log('User is signed out');
-            // Optionally, redirect to the login page
-            // window.location.href = '/login.html';
+            // Redirect to the login page
+             window.location.href = 'login.html';
         }
     });
     // Listing files from localStorage on the Physical Counting page
@@ -446,145 +483,4 @@ document.addEventListener('DOMContentLoaded', function () {
                 year: 'numeric',
                 month: 'short',
                 day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false // Use 24-hour format
-            });
-
-            row.innerHTML = `
-                <td>${file.fileName}</td>
-                <td>
-                    <button class="download-file" data-index="${index}" data-type="${type}">Download</button>
-                    <button class="delete-file" data-index="${index}" data-type="${type}">Delete</button>
-                    <span class="file-date">Saved: ${formattedDate}</span>
-                </td>`;
-            tableBody.appendChild(row);
-        });
-    }
-
-    // Download file from localStorage
-    function downloadFileLocal(index, type) {
-        let files = [];
-        if (type === 'mcb') {
-            files = JSON.parse(localStorage.getItem('mcbFiles') || '[]');
-        } else if (type === 'carton') {
-            files = JSON.parse(localStorage.getItem('cartonFiles') || '[]');
-        }
-        const file = files[index];
-        if (file) {
-            const downloadLink = document.createElement('a');
-            downloadLink.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(file.content));
-            downloadLink.setAttribute('download', file.fileName);
-            downloadLink.style.display = 'none';
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
-        }
-    }
-
-    // Delete file from localStorage
-    function deleteFileLocal(index, type) {
-        let files = [];
-        if (type === 'mcb') {
-            files = JSON.parse(localStorage.getItem('mcbFiles') || '[]');
-        } else if (type === 'carton') {
-            files = JSON.parse(localStorage.getItem('cartonFiles') || '[]');
-        }
-        files.splice(index, 1);
-        if (type === 'mcb') {
-            localStorage.setItem('mcbFiles', JSON.stringify(files));
-        } else if (type === 'carton') {
-            localStorage.setItem('cartonFiles', JSON.stringify(files));
-        }
-        alert('File deleted successfully!');
-        const tableBody = (type === 'mcb')
-            ? document.querySelector('#mcb-tab tbody')
-            : document.querySelector('#carton-tab tbody');
-        listFiles(type, tableBody);
-    }
-
-    // Global event listener for download and delete buttons on Physical Counting page
-    document.querySelector('.content')?.addEventListener('click', function (event) {
-        if (event.target.classList.contains('download-file')) {
-            const index = parseInt(event.target.dataset.index);
-            const type = event.target.dataset.type;
-            downloadFileLocal(index, type);
-        } else if (event.target.classList.contains('delete-file')) {
-            const index = parseInt(event.target.dataset.index);
-            const type = event.target.dataset.type;
-            deleteFileLocal(index, type);
-        }
-    });
-
-    // Initialize breaking capacity options on page load for MCB Entry
-    if (productFamilySelect) {
-        updateBreakingCapacityOptions();
-    }
-
-    // Load file lists on page load for Physical Counting
-    const mcbTab = document.getElementById('mcb-tab');
-    const cartonTab = document.getElementById('carton-tab');
-
-    if (mcbTab) {
-        const mcbTableBody = mcbTab.querySelector('tbody');
-        listFiles('mcb', mcbTableBody);
-    }
-
-    if (cartonTab) {
-        const cartonTableBody = cartonTab.querySelector('tbody');
-        listFiles('carton', cartonTableBody);
-    }
-     // Function to save MCB entries to localStorage (called from Physical Counting page)
-     window.saveMcbEntries = function () {
-        if (allEntries.length === 0) {
-            alert('No MCB entries to save.');
-            return;
-        }
-
-        const fileName = prompt("Please enter the file name:", "inventory");
-        if (fileName === null || fileName === "") {
-            return;
-        }
-
-        const csvHeader = "Polarity,Rating,Product Family,Breaking Capacity,Quantity,Location";
-        const csvRows = allEntries.map(entry => `${entry.polarity},${entry.rating},${entry.productFamily},${entry.breakingCapacity},${entry.quantity},${entry.location}`).join('\n');
-        const csvContent = `${csvHeader}\n${csvRows}`;
-
-        // Save file content in localStorage under "mcbFiles".
-        let mcbFiles = JSON.parse(localStorage.getItem('mcbFiles') || '[]');
-          const createdAt = new Date().toISOString();
-        mcbFiles.push({ fileName: `${fileName}.csv`, content: csvContent, createdAt:createdAt });
-        localStorage.setItem('mcbFiles', JSON.stringify(mcbFiles));
-
-        alert('MCB entries saved to local storage successfully!');
-        // Clear all entries after saving
-        allEntries = [];
-        displayMcbEntries(); // Clear the table
-        listFiles('mcb', document.querySelector('#mcb-tab tbody'));
-    };
-     // Function to save Carton entries to localStorage (called from Physical Counting page)
-     window.saveCartonEntries = function () {
-          if (allCartonEntries.length === 0) {
-            alert('No entries to generate.');
-            return;
-        }
-        const fileName = prompt("Please enter the file name:", "carton");
-        if (fileName === null || fileName === "") {
-            return;
-        }
-
-        const csvHeader = "Material Number,Material Description,Quantity,Location";
-        const csvRows = allCartonEntries.map(entry => `${entry.number},${entry.description},${entry.quantity},${entry.location}`).join('\n');
-        const csvContent = `${csvHeader}\n${csvRows}`;
-
-        let cartonFiles = JSON.parse(localStorage.getItem('cartonFiles') || '[]');
-          const createdAt = new Date().toISOString();
-        cartonFiles.push({ fileName: `${fileName}.csv`, content: csvContent, createdAt: createdAt });
-        localStorage.setItem('cartonFiles', JSON.stringify(cartonFiles));
-
-        alert('Carton entries saved to local storage successfully!');
-        allCartonEntries = [];
-        displayCartonEntries();
-        listFiles('carton', document.querySelector('#carton-tab tbody'));
-    };
-});
+                hour: '2-digit
