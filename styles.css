@@ -8,7 +8,7 @@ body {
 .header {
     background-color: #222; /* Revert to previous sidebar color */
     color: #fff;
-    padding: 10px 0;
+    padding: 10.5px 0; /* Increased by 5% */
     text-align: left; /* Align header content to the left */
     position: relative; /* Needed for absolute positioning of the logo */
 }
@@ -73,6 +73,7 @@ body {
 .content {
     margin-left: 170px; /* Adjust content margin based on new sidebar width */
     padding: 20px;
+    margin-top: 60px; /* Added margin to push content down */
 }
 
 .container {
