@@ -1,14 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
-    // Firebase configuration
-    const firebaseConfig = {
-        apiKey: "<script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
+    // Your web app's Firebase configuration
   // For Firebase JS SDK v7.20.0 and later, measurementId is optional
   const firebaseConfig = {
     apiKey: "AIzaSyDXZDJGiNudokW6h04TornneQt5_xtep6Y",
@@ -19,18 +10,6 @@ document.addEventListener('DOMContentLoaded', function () {
     appId: "1:863294594287:web:49b1e9567abe0939544f1a",
     measurementId: "G-E7H9J01X63"
   };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-</script>",
-        authDomain: "your-project-id.firebaseapp.com",
-        projectId: "your-project-id",
-        storageBucket: "your-project-id.appspot.com",
-        messagingSenderId: "123456789012",
-        appId: "1:123456789012:web:a1b2c3d4e5f6g7h8i9j0",
-        measurementId: "G-ABCDEFGHIJ"
-    };
 
     // Initialize Firebase
     const app = firebase.initializeApp(firebaseConfig);
@@ -220,7 +199,6 @@ document.addEventListener('DOMContentLoaded', function () {
         alert('MCB entries saved to local storage successfully!');
         allEntries = [];
         displayMcbEntries();
-        listFiles('mcb', document.querySelector('#mcb-tab tbody'));
     }
 
     // Functions for Carton Entry
@@ -375,6 +353,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const csvRows = allCartonEntries.map(entry => `${entry.number},${entry.description},${entry.quantity},${entry.location}`).join('\n');
         const csvContent = `${csvHeader}\n${csvRows}`;
 
+        // Save file content in localStorage under "cartonFiles".
         let cartonFiles = JSON.parse(localStorage.getItem('cartonFiles') || '[]');
         const createdAt = new Date().toISOString();
         cartonFiles.push({ fileName: `${fileName}.csv`, content: csvContent, createdAt: createdAt });
@@ -383,7 +362,6 @@ document.addEventListener('DOMContentLoaded', function () {
         alert('Carton entries saved to local storage successfully!');
         allCartonEntries = [];
         displayCartonEntries();
-        listFiles('carton', document.querySelector('#carton-tab tbody'));
     }
 
     // Firebase integration functions
@@ -395,8 +373,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 id: doc.id,
                 ...doc.data()
             }));
-             displayMcbEntries();
-             displayCartonEntries();
+            displayMcbEntries();
+            displayCartonEntries();
         } catch (error) {
             console.error('Error fetching inventory:', error.message);
             alert('Failed to load inventory data: ' + error.message);
@@ -449,6 +427,7 @@ document.addEventListener('DOMContentLoaded', function () {
             alert('Logout failed: ' + error.message);
         }
     }
+
     // Authentication state listener
     auth.onAuthStateChanged(user => {
         if (user) {
@@ -458,29 +437,10 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             // User is signed out
             console.log('User is signed out');
-            // Redirect to the login page
-             window.location.href = 'login.html';
+            // Redirect to the login page only if not already on login page
+            if (window.location.pathname !== '/login.html') {
+                window.location.href = 'login.html';
+            }
         }
     });
-    // Listing files from localStorage on the Physical Counting page
-     function listFiles(type, tableBody) {
-        tableBody.innerHTML = '';
-        let files = [];
-        if (type === 'mcb') {
-            files = JSON.parse(localStorage.getItem('mcbFiles') || '[]');
-        } else if (type === 'carton') {
-            files = JSON.parse(localStorage.getItem('cartonFiles') || '[]');
-        }
-        if (!files || files.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="2">No files found.</td></tr>';
-            return;
-        }
-        files.forEach((file, index) => {
-            const row = document.createElement('tr');
-            row.classList.add('bold');
-            const fileDate = new Date(file.createdAt);
-             const formattedDate = fileDate.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit
+});
