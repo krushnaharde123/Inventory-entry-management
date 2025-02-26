@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
+import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -41,6 +41,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const previewCartonFileButton = document.getElementById('preview-carton-file');
     const saveCartonFileButton = document.getElementById('save-carton-file');
     const addCartonEntryButton = document.getElementById('add-carton-entry');
+
+    const physicalCountingTableBody = document.getElementById('physical-counting-table')?.querySelector('tbody');
 
     let allEntries = [];
     let lastEntry = null;
@@ -102,7 +104,16 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        const entry = { polarity, rating, productFamily, breakingCapacity, quantity, location };
+        const entry = {
+            type: 'mcb',
+            polarity,
+            rating,
+            productFamily,
+            breakingCapacity,
+            quantity,
+            location,
+            timestamp: new Date().toISOString()
+        };
         addEntryToServer(entry);
         // Reset form fields
         polaritySelect.value = '';
@@ -114,6 +125,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function displayLastMcbEntry() {
+        if (!entryTableBody) return;
         entryTableBody.innerHTML = '';
         if (lastEntry) {
             const row = document.createElement('tr');
@@ -124,16 +136,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 <td>${lastEntry.breakingCapacity}</td>
                 <td>${lastEntry.quantity}</td>
                 <td>${lastEntry.location}</td>
-                <td><button class="edit-entry">Edit</button></td>
+                <td><button class="edit-entry" data-id="${lastEntry.id}">Edit</button></td>
             `;
             entryTableBody.appendChild(row);
         }
     }
 
     function displayMcbEntries() {
-        if (!entryTableBody) return; // Exit if entryTableBody is null
+        if (!entryTableBody) return;
         entryTableBody.innerHTML = '';
-        allEntries.forEach((entry, index) => { // Loop through all entries
+        allEntries.filter(entry => entry.type === 'mcb').forEach((entry, index) => {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${entry.polarity}</td>
@@ -142,30 +154,33 @@ document.addEventListener('DOMContentLoaded', function () {
                 <td>${entry.breakingCapacity}</td>
                 <td>${entry.quantity}</td>
                 <td>${entry.location}</td>
-                <td><button class="edit-entry" data-index="${index}">Edit</button></td>
+                <td><button class="edit-entry" data-id="${entry.id}">Edit</button></td>
             `;
             entryTableBody.appendChild(row);
         });
     }
 
     // Edit entry functionality
-    entryTableBody?.addEventListener('click', function(event) {
+    entryTableBody?.addEventListener('click', function (event) {
         if (event.target.classList.contains('edit-entry')) {
-            editEntry();
+            const entryId = event.target.dataset.id;
+            editEntry(entryId);
         }
     });
 
-    function editEntry() {
-        if (lastEntry) {
-            // Populate the form with the last entry's data
-            polaritySelect.value = lastEntry.polarity;
-            ratingSelect.value = lastEntry.rating;
-            productFamilySelect.value = lastEntry.productFamily;
+    async function editEntry(entryId) {
+        const entry = allEntries.find(entry => entry.id === entryId);
+        if (entry) {
+            // Populate the form with the entry's data
+            polaritySelect.value = entry.polarity;
+            ratingSelect.value = entry.rating;
+            productFamilySelect.value = entry.productFamily;
             updateBreakingCapacityOptions();
-            breakingCapacitySelect.value = lastEntry.breakingCapacity;
-            quantityInput.value = lastEntry.quantity;
-            locationInput.value = lastEntry.location;
+            breakingCapacitySelect.value = entry.breakingCapacity;
+            quantityInput.value = entry.quantity;
+            locationInput.value = entry.location;
 
+            lastEntry = entry;
             displayLastMcbEntry();
         }
     }
@@ -191,7 +206,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const csvHeader = "Polarity,Rating,Product Family,Breaking Capacity,Quantity,Location";
-        const csvRows = allEntries.map(entry => `${entry.polarity},${entry.rating},${entry.productFamily},${entry.breakingCapacity},${entry.quantity},${entry.location}`).join('\n');
+        const csvRows = allEntries.filter(entry => entry.type === 'mcb').map(entry => `${entry.polarity},${entry.rating},${entry.productFamily},${entry.breakingCapacity},${entry.quantity},${entry.location}`).join('\n');
         const csvContent = `${csvHeader}\n${csvRows}`;
 
         alert('MCB entries saved to local storage successfully!');
@@ -270,7 +285,14 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        const entry = { number, description, quantity, location };
+        const entry = {
+            type: 'carton',
+            number,
+            description,
+            quantity,
+            location,
+            timestamp: new Date().toISOString()
+        };
         addEntryToServer(entry);
 
         materialNumberInput.value = '';
@@ -280,6 +302,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function displayLastCartonEntry() {
+        if (!cartonEntryTableBody) return;
         cartonEntryTableBody.innerHTML = '';
         if (lastCartonEntry) {
             const row = document.createElement('tr');
@@ -288,23 +311,23 @@ document.addEventListener('DOMContentLoaded', function () {
                 <td>${lastCartonEntry.description}</td>
                 <td>${lastCartonEntry.quantity}</td>
                 <td>${lastCartonEntry.location}</td>
-                <td><button class="edit-carton-entry">Edit</button></td>
+                <td><button class="edit-carton-entry" data-id="${lastCartonEntry.id}">Edit</button></td>
             `;
             cartonEntryTableBody.appendChild(row);
         }
     }
 
     function displayCartonEntries() {
-         if (!cartonEntryTableBody) return; // Exit if cartonEntryTableBody is null
+        if (!cartonEntryTableBody) return;
         cartonEntryTableBody.innerHTML = '';
-        allCartonEntries.forEach((entry, index) => {
+        allCartonEntries.filter(entry => entry.type === 'carton').forEach((entry, index) => {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${entry.number}</td>
                 <td>${entry.description}</td>
                 <td>${entry.quantity}</td>
                 <td>${entry.location}</td>
-                <td><button class="edit-carton-entry" data-index="${index}">Edit</button></td>
+                <td><button class="edit-carton-entry" data-id="${entry.id}">Edit</button></td>
             `;
             cartonEntryTableBody.appendChild(row);
         });
@@ -313,17 +336,20 @@ document.addEventListener('DOMContentLoaded', function () {
     // Edit carton entry functionality
     cartonEntryTableBody?.addEventListener('click', function (event) {
         if (event.target.classList.contains('edit-carton-entry')) {
-            editCartonEntry();
+            const entryId = event.target.dataset.id;
+            editCartonEntry(entryId);
         }
     });
 
-    function editCartonEntry() {
-        if (lastCartonEntry) {
-            materialNumberInput.value = lastCartonEntry.number;
-            materialDescriptionInput.value = lastCartonEntry.description;
-            cartonQuantityInput.value = lastCartonEntry.quantity;
-            cartonLocationInput.value = lastCartonEntry.location;
+    async function editCartonEntry(entryId) {
+        const entry = allCartonEntries.find(entry => entry.id === entryId);
+        if (entry) {
+            materialNumberInput.value = entry.number;
+            materialDescriptionInput.value = entry.description;
+            cartonQuantityInput.value = entry.quantity;
+            cartonLocationInput.value = entry.location;
 
+            lastCartonEntry = entry;
             displayLastCartonEntry();
         }
     }
@@ -348,12 +374,50 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const csvHeader = "Material Number,Material Description,Quantity,Location";
-        const csvRows = allCartonEntries.map(entry => `${entry.number},${entry.description},${entry.quantity},${entry.location}`).join('\n');
+        const csvRows = allCartonEntries.filter(entry => entry.type === 'carton').map(entry => `${entry.number},${entry.description},${entry.quantity},${entry.location}`).join('\n');
         const csvContent = `${csvHeader}\n${csvRows}`;
 
         alert('Carton entries saved to local storage successfully!');
         allCartonEntries = [];
         displayCartonEntries();
+    }
+
+    // Physical Counting Page
+    function displayPhysicalCountingEntries() {
+        if (!physicalCountingTableBody) return;
+
+        physicalCountingTableBody.innerHTML = '';
+        allEntries.forEach(entry => {
+            const row = document.createElement('tr');
+            let entryDetails = '';
+
+            if (entry.type === 'mcb') {
+                entryDetails = `
+                    <td>MCB</td>
+                    <td>${entry.polarity}</td>
+                    <td>${entry.rating}</td>
+                    <td>${entry.productFamily}</td>
+                    <td>${entry.breakingCapacity}</td>
+                    <td>${entry.quantity}</td>
+                    <td>${entry.location}</td>
+                `;
+            } else if (entry.type === 'carton') {
+                entryDetails = `
+                    <td>Carton</td>
+                    <td>${entry.number}</td>
+                    <td>${entry.description}</td>
+                    <td>${entry.quantity}</td>
+                    <td>${entry.location}</td>
+                    <td colspan="2"></td>
+                `;
+            }
+
+            row.innerHTML = `
+                ${entryDetails}
+                <td>${new Date(entry.timestamp).toLocaleString()}</td>
+            `;
+            physicalCountingTableBody.appendChild(row);
+        });
     }
 
     // Firebase integration functions
@@ -365,13 +429,38 @@ document.addEventListener('DOMContentLoaded', function () {
                 id: doc.id,
                 ...doc.data()
             }));
-            // Check if entryTableBody exists before calling displayMcbEntries
+
+            // After fetching the data, update allEntries, lastEntry, and lastCartonEntry
+            allEntries.forEach(entry => {
+                if (entry.type === 'mcb') {
+                    allEntries = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                } else if (entry.type === 'carton') {
+                    allCartonEntries = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                }
+            });
+
             if (document.getElementById('entry-table')) {
                 displayMcbEntries();
+                if (allEntries.length > 0) {
+                    lastEntry = allEntries[allEntries.length - 1];
+                    displayLastMcbEntry();
+                }
             }
-            // Check if cartonEntryTableBody exists before calling displayCartonEntries
             if (document.getElementById('carton-entry-table')) {
                 displayCartonEntries();
+                if (allCartonEntries.length > 0) {
+                    lastCartonEntry = allCartonEntries[allCartonEntries.length - 1];
+                    displayLastCartonEntry();
+                }
+            }
+            if (document.getElementById('physical-counting-table')) {
+                displayPhysicalCountingEntries();
             }
         } catch (error) {
             console.error('Error fetching inventory:', error.message);
@@ -381,7 +470,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function addEntryToServer(entry) {
         try {
-            await addDoc(collection(db, 'inventory'), entry);
+            const docRef = await addDoc(collection(db, 'inventory'), entry);
+            entry.id = docRef.id; // Add the ID to the entry object
+            await updateDoc(doc(db, 'inventory', docRef.id), {
+                id: docRef.id // Save the ID to Firebase
+            });
             await window.fetchInventory(); // Refresh the inventory table
         } catch (error) {
             console.error('Error adding entry:', error.message);
