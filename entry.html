@@ -1,14 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MCB Entry</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js"></script>
-     <script src="https://www.gstatic.com/firebasejs/11.3.1/firebase-analytics.js"></script>
-    <script src="combined-entry.js" defer></script>
+
+    <!-- Firebase SDK scripts (MUST be before combined-entry.js) -->
+    <!-- <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-analytics.js";
+        // TODO: Add SDKs for Firebase products that you want to use
+        // https://firebase.google.com/docs/web/setup#available-libraries
+
+        // Your web app's Firebase configuration
+        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+        const firebaseConfig = {
+            apiKey: "AIzaSyDXZDJGiNudokW6h04TornneQt5_xtep6Y",
+            authDomain: "inventory-management-b330b.firebaseapp.com",
+            projectId: "inventory-management-b330b",
+            storageBucket: "inventory-management-b330b.firebasestorage.app",
+            messagingSenderId: "863294594287",
+            appId: "1:863294594287:web:49b1e9567abe0939544f1a",
+            measurementId: "G-E7H9J01X63"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+    </script> -->
+
+    <script src="combined-entry.js" type="module" defer></script>
 </head>
+
 <body>
     <div class="header">
         <div class="logo">SIEMENS</div>
@@ -114,10 +140,12 @@
             <button type="button" id="generate-inventory-file" style="display: none;">Generate Inventory File</button>
         </div>
     </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            fetchInventory();
+    <script type="module">
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log("fetchInventory called"); // Add this line for testing
+            window.fetchInventory();
         });
     </script>
 </body>
+
 </html>
