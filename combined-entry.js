@@ -194,13 +194,13 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function handleMaterialDescriptionInput() {
-        const description = materialDescriptionInput.value;
-        const material = materialData.find(item => item['Material Description'] === description);
-        if (material) {
-            materialNumberInput.value = material['Material Number'];
-        } else {
-            materialNumberInput.value = '';
-        }
+      const description = materialDescriptionInput.value;
+      const material = materialData.find(item => item['Material Description'] === description);
+      if (material) {
+          materialNumberInput.value = material['Material Number'];
+      } else {
+          materialNumberInput.value = '';
+      }
     }
 
     function addCartonEntry() {
