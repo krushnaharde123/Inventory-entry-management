@@ -150,8 +150,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Carton Entry Page Logic
     const cartonMasterFileInput = document.getElementById('carton-master-file');
     const materialDescriptionInput = document.getElementById('material-description');
-    const materialList = document.getElementById('material-list');
     const materialNumberInput = document.getElementById('material-number');
+    const materialList = document.getElementById('material-list');
     const cartonQuantityInput = document.getElementById('carton-quantity');
     const cartonLocationInput = document.getElementById('carton-location');
     const cartonEntryTableBody = document.getElementById('carton-entry-table')?.querySelector('tbody');
@@ -163,7 +163,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let materialData = [];
 
     cartonMasterFileInput?.addEventListener('change', handleFileUpload);
-    materialDescriptionInput?.addEventListener('input', handleMaterialDescriptionInput);
+    materialNumberInput?.addEventListener('input', handleMaterialNumberInput);
     addCartonEntryButton?.addEventListener('click', addCartonEntry);
     previewCartonFileButton?.addEventListener('click', previewCartonFile);
     saveCartonFileButton?.addEventListener('click', saveCartonFileLocal);
@@ -189,48 +189,48 @@ document.addEventListener('DOMContentLoaded', function () {
         materialList.innerHTML = '';
         materialData.forEach(item => {
             const option = document.createElement('option');
-            option.value = item['Material description'];
+            option.value = item['Material number'];
             materialList.appendChild(option);
         });
     }
 
-   function handleMaterialDescriptionInput() {
-        const description = materialDescriptionInput.value;
+   function handleMaterialNumberInput() {
+        const number = materialNumberInput.value;
 
         // Define possible keys for material description and number
         const descriptionKey = 'Material description';
         const numberKey = 'Material number';
 
         const material = materialData.find(item => {
-            // Normalize both the input and the material description for comparison
-            const normalizedDescription = description.trim().toLowerCase();
-            const normalizedMaterialDescription = String(item[descriptionKey]).trim().toLowerCase(); // Ensure it's a string
-            console.log(`Comparing "${normalizedDescription}" with "${normalizedMaterialDescription}"`);
+            // Normalize both the input and the material number for comparison
+            const normalizedNumber = number.trim().toLowerCase();
+            const normalizedMaterialNumber = String(item[numberKey]).trim().toLowerCase(); // Ensure it's a string
+            console.log(`Comparing "${normalizedNumber}" with "${normalizedMaterialNumber}"`);
 
-            return normalizedDescription === normalizedMaterialDescription;
+            return normalizedNumber === normalizedMaterialNumber;
         });
 
         if (material) {
-            const materialNumber = material[numberKey];
+            const materialDescription = material[descriptionKey];
             console.log("Found matching material:", material);
-            console.log("Material number:", materialNumber);
+            console.log("Material Description:", materialDescription);
 
-            if (materialNumber !== undefined && materialNumber !== null) {
-                materialNumberInput.value = materialNumber;
+            if (materialDescription !== undefined && materialDescription !== null) {
+                materialDescriptionInput.value = materialDescription;
             } else {
-                materialNumberInput.value = '';
-                console.warn("Material number is undefined or null in the data.");
+                materialDescriptionInput.value = '';
+                console.warn("Material description is undefined or null in the data.");
             }
         } else {
-            materialNumberInput.value = '';
+            materialDescriptionInput.value = '';
             console.log("No matching material found.");
         }
     }
 
 
     function addCartonEntry() {
-        const description = materialDescriptionInput.value;
         const number = materialNumberInput.value;
+        const description = materialDescriptionInput.value;
         const quantity = cartonQuantityInput.value;
         const location = cartonLocationInput.value;
 
@@ -239,13 +239,13 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        const entry = { description, number, quantity, location };
+        const entry = { number, description, quantity, location };
         allCartonEntries.push(entry);
         lastCartonEntry = entry;
         displayCartonEntries();
 
-        materialDescriptionInput.value = '';
         materialNumberInput.value = '';
+        materialDescriptionInput.value = '';
         cartonQuantityInput.value = '';
         cartonLocationInput.value = '';
     }
@@ -255,8 +255,8 @@ document.addEventListener('DOMContentLoaded', function () {
          if (lastCartonEntry) {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${lastCartonEntry.description}</td>
                 <td>${lastCartonEntry.number}</td>
+                <td>${lastCartonEntry.description}</td>
                 <td>${lastCartonEntry.quantity}</td>
                 <td>${lastCartonEntry.location}</td>
                 <td><button class="edit-carton-entry">Edit</button></td>
@@ -274,8 +274,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function editCartonEntry() {
          if (lastCartonEntry) {
-            materialDescriptionInput.value = lastCartonEntry.description;
             materialNumberInput.value = lastCartonEntry.number;
+            materialDescriptionInput.value = lastCartonEntry.description;
             cartonQuantityInput.value = lastCartonEntry.quantity;
             cartonLocationInput.value = lastCartonEntry.location;
 
@@ -305,8 +305,8 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        const csvHeader = "Material Description,Material Number,Quantity,Location";
-        const csvRows = allCartonEntries.map(entry => `${entry.description},${entry.number},${entry.quantity},${entry.location}`).join('\n');
+        const csvHeader = "Material Number,Material Description,Quantity,Location";
+        const csvRows = allCartonEntries.map(entry => `${entry.number},${entry.description},${entry.quantity},${entry.location}`).join('\n');
         const csvContent = `${csvHeader}\n${csvRows}`;
 
         let cartonFiles = JSON.parse(localStorage.getItem('cartonFiles') || '[]');
@@ -453,8 +453,8 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        const csvHeader = "Material Description,Material Number,Quantity,Location";
-        const csvRows = allCartonEntries.map(entry => `${entry.description},${entry.number},${entry.quantity},${entry.location}`).join('\n');
+        const csvHeader = "Material Number,Material Description,Quantity,Location";
+        const csvRows = allCartonEntries.map(entry => `${entry.number},${entry.description},${entry.quantity},${entry.location}`).join('\n');
         const csvContent = `${csvHeader}\n${csvRows}`;
 
         let cartonFiles = JSON.parse(localStorage.getItem('cartonFiles') || '[]');
