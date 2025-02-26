@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
 import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.6.6/firebase-storage.js";
+import { getStorage, ref, uploadBytes, getDownloadURL, listAll, deleteObject } from "https://www.gstatic.com/firebasejs/9.6.6/firebase-storage.js";
 
 document.addEventListener('DOMContentLoaded', function () {
     // Firebase configuration
@@ -409,6 +409,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const csvHeader = "Material Number,Material Description,Quantity,Location";
             const csvRows = allCartonEntries.map(entry => `${entry.number},${entry.description},${entry.quantity},${entry.location}`).join('\n');
             const csvContent = `${csvHeader}\n${csvRows}`;
+
             // Create a Blob from the CSV content
             const blob = new Blob([csvContent], { type: 'text/csv' });
 
@@ -446,91 +447,67 @@ document.addEventListener('DOMContentLoaded', function () {
     // Listing files from localStorage on the Physical Counting page
     function listFiles(type, tableBody) {
         tableBody.innerHTML = '';
-        let files = [];
-        if (type === 'mcb') {
-            files = JSON.parse(localStorage.getItem('mcbFiles') || '[]');
-        } else if (type === 'carton') {
-            files = JSON.parse(localStorage.getItem('cartonFiles') || '[]');
-        }
-        if (!files || files.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="2">No files found.</td></tr>';
-            return;
-        }
-        files.forEach((file, index) => {
-            const row = document.createElement('tr');
-            row.classList.add('bold');
-            const fileDate = new Date(file.createdAt);
-            const formattedDate = fileDate.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false // Use 24-hour format
+        const storageRef = ref(storage, `${type}Files/`);
+
+        listAll(storageRef)
+            .then((res) => {
+                if (res.items.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="2">No files found in Firebase Storage.</td></tr>';
+                    return;
+                }
+
+                res.items.forEach((itemRef) => {
+                    getDownloadURL(itemRef)
+                        .then((url) => {
+                            const fileName = itemRef.name;
+                            const row = document.createElement('tr');
+                            row.classList.add('bold');
+
+                            // Extract timestamp from filename if it exists
+                            let formattedDate = '';
+
+                            row.innerHTML = `
+                                <td>${fileName}</td>
+                                <td>
+                                    <a href="${url}" target="_blank" download="${fileName}">Download</a>
+                                    <button class="delete-file" data-name="${fileName}" data-type="${type}">Delete</button>
+                                    <span class="file-date">Saved: ${formattedDate}</span>
+                                </td>`;
+                            tableBody.appendChild(row);
+                        })
+                        .catch((error) => {
+                            console.error("Error getting download URL:", error);
+                            alert("Error getting download URL. Please check the console for errors.");
+                        });
+                });
+            })
+            .catch((error) => {
+                console.error("Error listing files from Firebase Storage:", error);
+                tableBody.innerHTML = '<tr><td colspan="2">Error listing files from Firebase Storage.</td></tr>';
             });
-
-            row.innerHTML = `
-                <td>${file.fileName}</td>
-                <td>
-                    <button class="download-file" data-index="${index}" data-type="${type}">Download</button>
-                    <button class="delete-file" data-index="${index}" data-type="${type}">Delete</button>
-                    <span class="file-date">Saved: ${formattedDate}</span>
-                </td>`;
-            tableBody.appendChild(row);
-        });
     }
 
-    // Download file from localStorage
-    function downloadFileLocal(index, type) {
-        let files = [];
-        if (type === 'mcb') {
-            files = JSON.parse(localStorage.getItem('mcbFiles') || '[]');
-        } else if (type === 'carton') {
-            files = JSON.parse(localStorage.getItem('cartonFiles') || '[]');
-        }
-        const file = files[index];
-        if (file) {
-            const downloadLink = document.createElement('a');
-            downloadLink.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(file.content));
-            downloadLink.setAttribute('download', file.fileName);
-            downloadLink.style.display = 'none';
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
-        }
-    }
+    // Function to delete file from Firebase Storage
+    function deleteFile(fileName, type) {
+        const storageRef = ref(storage, `${type}Files/${fileName}`);
 
-    // Delete file from localStorage
-    function deleteFileLocal(index, type) {
-        let files = [];
-        if (type === 'mcb') {
-            files = JSON.parse(localStorage.getItem('mcbFiles') || '[]');
-        } else if (type === 'carton') {
-            files = JSON.parse(localStorage.getItem('cartonFiles') || '[]');
-        }
-        files.splice(index, 1);
-        if (type === 'mcb') {
-            localStorage.setItem('mcbFiles', JSON.stringify(files));
-        } else if (type === 'carton') {
-            localStorage.setItem('cartonFiles', JSON.stringify(files));
-        }
-        alert('File deleted successfully!');
-        const tableBody = (type === 'mcb')
-            ? document.querySelector('#mcb-tab tbody')
-            : document.querySelector('#carton-tab tbody');
-        listFiles(type, tableBody);
+        deleteObject(storageRef)
+            .then(() => {
+                alert('File deleted successfully from Firebase Storage!');
+                listFiles(type, (type === 'mcb') ? mcbTabTableBody : cartonTabTableBody);
+            })
+            .catch((error) => {
+                console.error("Error deleting file from Firebase Storage:", error);
+                alert("Error deleting file from Firebase Storage. Please check the console for errors.");
+            });
     }
 
     // Global event listener for download and delete buttons on Physical Counting page
     document.querySelector('.content')?.addEventListener('click', function (event) {
-        if (event.target.classList.contains('download-file')) {
-            const index = parseInt(event.target.dataset.index);
+        if (event.target.classList.contains('delete-file')) {
+            const fileName = event.target.dataset.name;
             const type = event.target.dataset.type;
-            downloadFileLocal(index, type);
-        } else if (event.target.classList.contains('delete-file')) {
-            const index = parseInt(event.target.dataset.index);
-            const type = event.target.dataset.type;
-            deleteFileLocal(index, type);
+            deleteFile(fileName, type);
         }
     });
 
@@ -544,16 +521,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const cartonTab = document.getElementById('carton-tab');
 
     if (mcbTab) {
-        const mcbTableBody = mcbTab.querySelector('tbody');
-        listFiles('mcb', mcbTableBody);
+        listFiles('mcb', mcbTabTableBody);
     }
 
     if (cartonTab) {
-        const cartonTableBody = cartonTab.querySelector('tbody');
-        listFiles('carton', cartonTableBody);
+        listFiles('carton', cartonTabTableBody);
     }
-    // Function to save MCB entries to localStorage (called from Physical Counting page)
-    window.saveMcbEntries = function () {
+     // Function to save MCB entries to localStorage (called from Physical Counting page)
+     window.saveMcbEntries = function () {
         if (allEntries.length === 0) {
             alert('No MCB entries to save.');
             return;
@@ -580,9 +555,9 @@ document.addEventListener('DOMContentLoaded', function () {
         displayMcbEntries(); // Clear the table
         listFiles('mcb', document.querySelector('#mcb-tab tbody'));
     };
-    // Function to save Carton entries to localStorage (called from Physical Counting page)
-    window.saveCartonEntries = function () {
-        if (allCartonEntries.length === 0) {
+     // Function to save Carton entries to localStorage (called from Physical Counting page)
+     window.saveCartonEntries = function () {
+          if (allCartonEntries.length === 0) {
             alert('No entries to generate.');
             return;
         }
