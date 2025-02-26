@@ -382,7 +382,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Authentication functions
-    async function signUp(email, password) {
+    window.signUp = async function (email, password) {
         try {
             await createUserWithEmailAndPassword(auth, email, password);
             alert('Signup successful!');
@@ -392,9 +392,9 @@ document.addEventListener('DOMContentLoaded', function () {
             console.error('Signup error:', error.message);
             alert('Signup failed: ' + error.message);
         }
-    }
+    };
 
-    async function logIn(email, password) {
+    window.logIn = async function (email, password) {
         try {
             await signInWithEmailAndPassword(auth, email, password);
             alert('Login successful!');
@@ -404,9 +404,9 @@ document.addEventListener('DOMContentLoaded', function () {
             console.error('Login error:', error.message);
             alert('Login failed: ' + error.message);
         }
-    }
+    };
 
-    async function logOut() {
+    window.logOut = async function () {
         try {
             await signOut(auth);
             alert('Logout successful!');
@@ -416,7 +416,7 @@ document.addEventListener('DOMContentLoaded', function () {
             console.error('Logout error:', error.message);
             alert('Logout failed: ' + error.message);
         }
-    }
+    };
 
     // Authentication state listener
     onAuthStateChanged(auth, user => {
