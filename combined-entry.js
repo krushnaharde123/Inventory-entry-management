@@ -581,22 +581,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 ...doc.data()
             }));
 
-            // After fetching the data, update allEntries, lastEntry, and lastCartonEntry
-            const mcbEntries = allEntries.filter(entry => entry.type === 'mcb');
-            const cartonEntries = allEntries.filter(entry => entry.type === 'carton');
-
-            if (mcbEntries.length > 0) {
-                lastEntry = mcbEntries[mcbEntries.length - 1];
-            }
-             else {
-                lastEntry = null;
-            }
-            if (cartonEntries.length > 0) {
-                lastCartonEntry = cartonEntries[cartonEntries.length - 1];
-            }
-             else {
-                lastCartonEntry = null;
-            }
             if (document.getElementById('entry-table')) {
                 displayMcbEntries();
             }
