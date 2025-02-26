@@ -189,7 +189,7 @@ document.addEventListener('DOMContentLoaded', function () {
         materialList.innerHTML = '';
         materialData.forEach(item => {
             const option = document.createElement('option');
-            option.value = item['Material Description'];
+            option.value = item['Material description'];
             materialList.appendChild(option);
         });
     }
@@ -198,8 +198,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const description = materialDescriptionInput.value;
 
         // Define possible keys for material description and number
-        const descriptionKey = 'Material Description';
-        const numberKey = 'Material Number';
+        const descriptionKey = 'Material description';
+        const numberKey = 'Material number';
 
         const material = materialData.find(item => {
             // Normalize both the input and the material description for comparison
