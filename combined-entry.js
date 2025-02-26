@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const generateInventoryFileButton = document.getElementById('generate-inventory-file');
     const addEntryButton = document.getElementById('add-entry');
     let allEntries = [];
+    let lastEntry = null;
 
     const breakingCapacityData = {
         '5SL1': ['3KA'],
@@ -59,7 +60,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const entry = { polarity, rating, productFamily, breakingCapacity, quantity, location };
         allEntries.push(entry);
-        //displayMcbEntries(); // Removed this line
+        lastEntry = entry;
+        displayLastMcbEntry(); // Added this line
         // Reset form fields
         polaritySelect.value = '';
         ratingSelect.value = '';
@@ -67,6 +69,23 @@ document.addEventListener('DOMContentLoaded', function () {
         updateBreakingCapacityOptions();
         quantityInput.value = '';
         locationInput.value = '';
+    }
+
+    function displayLastMcbEntry() {
+        entryTableBody.innerHTML = '';
+        if (lastEntry) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${lastEntry.polarity}</td>
+                <td>${lastEntry.rating}</td>
+                <td>${lastEntry.productFamily}</td>
+                <td>${lastEntry.breakingCapacity}</td>
+                <td>${lastEntry.quantity}</td>
+                <td>${lastEntry.location}</td>
+                <td><button class="edit-entry">Edit</button></td>
+            `;
+            entryTableBody.appendChild(row);
+        }
     }
 
     // Function to display MCB entries
@@ -84,33 +103,31 @@ document.addEventListener('DOMContentLoaded', function () {
                 <td><button class="edit-entry" data-index="${index}">Edit</button></td>
             `;
             entryTableBody.appendChild(row);
-        });
+        }
     }
 
     // Edit entry functionality
     entryTableBody?.addEventListener('click', function(event) {
         if (event.target.classList.contains('edit-entry')) {
-            const index = event.target.dataset.index;
-            editEntry(index);
+            editEntry();
         }
     });
 
-    function editEntry(index) {
-        const entry = allEntries[index];
-
-        if (entry) {
-            // Populate the form with the entry's data
-            polaritySelect.value = entry.polarity;
-            ratingSelect.value = entry.rating;
-            productFamilySelect.value = entry.productFamily;
+    function editEntry() {
+        if (lastEntry) {
+            // Populate the form with the last entry's data
+            polaritySelect.value = lastEntry.polarity;
+            ratingSelect.value = lastEntry.rating;
+            productFamilySelect.value = lastEntry.productFamily;
             updateBreakingCapacityOptions();
-            breakingCapacitySelect.value = entry.breakingCapacity;
-            quantityInput.value = entry.quantity;
-            locationInput.value = entry.location;
+            breakingCapacitySelect.value = lastEntry.breakingCapacity;
+            quantityInput.value = lastEntry.quantity;
+            locationInput.value = lastEntry.location;
 
-            // Remove the entry from the array
-            allEntries.splice(index, 1);
-            displayMcbEntries();
+            // Remove the last entry from the array and clear the table display
+            allEntries = allEntries.filter(entry => entry !== lastEntry);
+            lastEntry = null;
+            displayLastMcbEntry();
         }
     }
 
@@ -119,7 +136,7 @@ document.addEventListener('DOMContentLoaded', function () {
             alert('No entries to preview.');
             return;
         }
-        displayMcbEntries(); // Called here to display the preview
+        displayMcbEntries(); // Called here to display all entry
         generateInventoryFileButton.style.display = 'inline-block';
     }
 
@@ -163,6 +180,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const saveCartonFileButton = document.getElementById('save-carton-file');
     const addCartonEntryButton = document.getElementById('add-carton-entry');
     let allCartonEntries = [];
+     let lastCartonEntry = null;
 
     cartonMasterFileInput?.addEventListener('change', handleFileUpload);
     materialNumberInput?.addEventListener('input', handleMaterialNumberInput);
@@ -243,12 +261,28 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const entry = { number, description, quantity, location };
         allCartonEntries.push(entry);
-        //displayCartonEntries(); // Removed this line
+        lastCartonEntry = entry;
+        displayLastCartonEntry();//displayCartonEntries(); // Removed this line
 
         materialNumberInput.value = '';
         materialDescriptionInput.value = '';
         cartonQuantityInput.value = '';
         cartonLocationInput.value = '';
+    }
+
+     function displayLastCartonEntry() {
+        cartonEntryTableBody.innerHTML = '';
+        if (lastCartonEntry) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${lastCartonEntry.number}</td>
+                <td>${lastCartonEntry.description}</td>
+                <td>${lastCartonEntry.quantity}</td>
+                <td>${lastCartonEntry.location}</td>
+                <td><button class="edit-carton-entry">Edit</button></td>
+            `;
+            cartonEntryTableBody.appendChild(row);
+        }
     }
 
     function displayCartonEntries() {
@@ -269,21 +303,20 @@ document.addEventListener('DOMContentLoaded', function () {
     // Edit carton entry functionality
     cartonEntryTableBody?.addEventListener('click', function(event) {
         if (event.target.classList.contains('edit-carton-entry')) {
-             const index = event.target.dataset.index;
-            editCartonEntry(index);
+            editCartonEntry();
         }
     });
 
-    function editCartonEntry(index) {
-        const entry = allCartonEntries[index];
-        if (entry) {
-            materialNumberInput.value = entry.number;
-            materialDescriptionInput.value = entry.description;
-            cartonQuantityInput.value = entry.quantity;
-            cartonLocationInput.value = entry.location;
+    function editCartonEntry() {
+         if (lastCartonEntry) {
+            materialNumberInput.value = lastCartonEntry.number;
+            materialDescriptionInput.value = lastCartonEntry.description;
+            cartonQuantityInput.value = lastCartonEntry.quantity;
+            cartonLocationInput.value = lastCartonEntry.location;
 
-            allCartonEntries.splice(index, 1);
-            displayCartonEntries();
+            allCartonEntries = allCartonEntries.filter(entry => entry !== lastCartonEntry);
+            lastCartonEntry = null;
+            displayLastCartonEntry();
         }
     }
 
@@ -292,7 +325,7 @@ document.addEventListener('DOMContentLoaded', function () {
             alert('No entries to preview.');
             return;
         }
-        displayCartonEntries(); // Called here to display the preview
+        displayCartonEntries(); // Called here to display all entries
         saveCartonFileButton.style.display = 'inline-block';
     }
 
