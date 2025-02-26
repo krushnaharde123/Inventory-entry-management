@@ -11,7 +11,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const generateInventoryFileButton = document.getElementById('generate-inventory-file');
     const addEntryButton = document.getElementById('add-entry');
     let allEntries = [];
-    let lastEntry = null;
 
     const breakingCapacityData = {
         '5SL1': ['3KA'],
@@ -60,7 +59,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const entry = { polarity, rating, productFamily, breakingCapacity, quantity, location };
         allEntries.push(entry);
-        displayMcbEntries();
+        //displayMcbEntries(); // Removed this line
         // Reset form fields
         polaritySelect.value = '';
         ratingSelect.value = '';
@@ -73,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Function to display MCB entries
     function displayMcbEntries() {
         entryTableBody.innerHTML = '';
-        allEntries.forEach(entry => { // Loop through all entries
+        allEntries.forEach((entry, index) => { // Loop through all entries
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${entry.polarity}</td>
@@ -82,7 +81,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <td>${entry.breakingCapacity}</td>
                 <td>${entry.quantity}</td>
                 <td>${entry.location}</td>
-                <td><button class="edit-entry">Edit</button></td>
+                <td><button class="edit-entry" data-index="${index}">Edit</button></td>
             `;
             entryTableBody.appendChild(row);
         });
@@ -91,12 +90,12 @@ document.addEventListener('DOMContentLoaded', function () {
     // Edit entry functionality
     entryTableBody?.addEventListener('click', function(event) {
         if (event.target.classList.contains('edit-entry')) {
-            editEntry(event.target.closest('tr'));
+            const index = event.target.dataset.index;
+            editEntry(index);
         }
     });
 
-    function editEntry(row) {
-        const index = row.rowIndex - 1;
+    function editEntry(index) {
         const entry = allEntries[index];
 
         if (entry) {
@@ -120,6 +119,7 @@ document.addEventListener('DOMContentLoaded', function () {
             alert('No entries to preview.');
             return;
         }
+        displayMcbEntries(); // Called here to display the preview
         generateInventoryFileButton.style.display = 'inline-block';
     }
 
@@ -163,8 +163,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const saveCartonFileButton = document.getElementById('save-carton-file');
     const addCartonEntryButton = document.getElementById('add-carton-entry');
     let allCartonEntries = [];
-    let lastCartonEntry = null;
-    let materialData = [];
 
     cartonMasterFileInput?.addEventListener('change', handleFileUpload);
     materialNumberInput?.addEventListener('input', handleMaterialNumberInput);
@@ -245,7 +243,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const entry = { number, description, quantity, location };
         allCartonEntries.push(entry);
-        displayCartonEntries();
+        //displayCartonEntries(); // Removed this line
 
         materialNumberInput.value = '';
         materialDescriptionInput.value = '';
@@ -255,14 +253,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function displayCartonEntries() {
         cartonEntryTableBody.innerHTML = '';
-        allCartonEntries.forEach(entry => {
+        allCartonEntries.forEach((entry, index) => {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${entry.number}</td>
                 <td>${entry.description}</td>
                 <td>${entry.quantity}</td>
                 <td>${entry.location}</td>
-                <td><button class="edit-carton-entry">Edit</button></td>
+                <td><button class="edit-carton-entry" data-index="${index}">Edit</button></td>
             `;
             cartonEntryTableBody.appendChild(row);
         });
@@ -271,12 +269,12 @@ document.addEventListener('DOMContentLoaded', function () {
     // Edit carton entry functionality
     cartonEntryTableBody?.addEventListener('click', function(event) {
         if (event.target.classList.contains('edit-carton-entry')) {
-            editCartonEntry(event.target.closest('tr'));
+             const index = event.target.dataset.index;
+            editCartonEntry(index);
         }
     });
 
-    function editCartonEntry(row) {
-        const index = row.rowIndex - 1;
+    function editCartonEntry(index) {
         const entry = allCartonEntries[index];
         if (entry) {
             materialNumberInput.value = entry.number;
@@ -294,7 +292,7 @@ document.addEventListener('DOMContentLoaded', function () {
             alert('No entries to preview.');
             return;
         }
-        displayCartonEntries();
+        displayCartonEntries(); // Called here to display the preview
         saveCartonFileButton.style.display = 'inline-block';
     }
 
@@ -341,13 +339,15 @@ document.addEventListener('DOMContentLoaded', function () {
             const row = document.createElement('tr');
             row.classList.add('bold');
             const fileDate = new Date(file.createdAt);
-            const formattedDate = fileDate.toLocaleDateString('en-US', {
+             const formattedDate = fileDate.toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'short',
                 day: 'numeric',
                 hour: '2-digit',
-                minute: '2-digit'
+                minute: '2-digit',
+                hour12: false // Use 24-hour format
             });
+
             row.innerHTML = `
                 <td>${file.fileName}</td>
                 <td>
@@ -449,8 +449,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Save file content in localStorage under "mcbFiles".
         let mcbFiles = JSON.parse(localStorage.getItem('mcbFiles') || '[]');
-        const createdAt = new Date().toISOString();
-        mcbFiles.push({ fileName: `${fileName}.csv`, content: csvContent, createdAt: createdAt });
+          const createdAt = new Date().toISOString();
+        mcbFiles.push({ fileName: `${fileName}.csv`, content: csvContent, createdAt:createdAt });
         localStorage.setItem('mcbFiles', JSON.stringify(mcbFiles));
 
         alert('MCB entries saved to local storage successfully!');
@@ -475,7 +475,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const csvContent = `${csvHeader}\n${csvRows}`;
 
         let cartonFiles = JSON.parse(localStorage.getItem('cartonFiles') || '[]');
-        const createdAt = new Date().toISOString();
+          const createdAt = new Date().toISOString();
         cartonFiles.push({ fileName: `${fileName}.csv`, content: csvContent, createdAt: createdAt });
         localStorage.setItem('cartonFiles', JSON.stringify(cartonFiles));
 
