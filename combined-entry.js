@@ -131,6 +131,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function displayMcbEntries() {
+        if (!entryTableBody) return; // Exit if entryTableBody is null
         entryTableBody.innerHTML = '';
         allEntries.forEach((entry, index) => { // Loop through all entries
             const row = document.createElement('tr');
@@ -294,6 +295,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function displayCartonEntries() {
+         if (!cartonEntryTableBody) return; // Exit if cartonEntryTableBody is null
         cartonEntryTableBody.innerHTML = '';
         allCartonEntries.forEach((entry, index) => {
             const row = document.createElement('tr');
@@ -363,8 +365,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 id: doc.id,
                 ...doc.data()
             }));
-            displayMcbEntries();
-            displayCartonEntries();
+            // Check if entryTableBody exists before calling displayMcbEntries
+            if (document.getElementById('entry-table')) {
+                displayMcbEntries();
+            }
+            // Check if cartonEntryTableBody exists before calling displayCartonEntries
+            if (document.getElementById('carton-entry-table')) {
+                displayCartonEntries();
+            }
         } catch (error) {
             console.error('Error fetching inventory:', error.message);
             alert('Failed to load inventory data: ' + error.message);
