@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
-import { getStorage, ref, uploadBytes, listAll, deleteObject, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js";
+import { getStorage, ref, uploadBytes, listAll, deleteObject, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-storage.js"; // **CRITICAL: Correct Storage SDK URL and Version**
 import { v4 as uuidv4 } from 'https://jspm.dev/uuid';
 
 // Your web app's Firebase configuration
@@ -15,11 +15,11 @@ const firebaseConfig = {
     measurementId: "G-E7H9J01X63"
 };
 
-// Initialize Firebase
+// Initialize Firebase (Ensure correct order!)
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
-const storage = getStorage(app);
+const storage = getStorage(app); // **CRITICAL: Initialize Storage AFTER app**
 
 document.addEventListener('DOMContentLoaded', function () {
 
