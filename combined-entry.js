@@ -1,34 +1,27 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
-import { getStorage, ref, uploadBytes, listAll, deleteObject, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-storage.js"; // **CRITICAL: Correct Storage SDK URL and Version**
-import { v4 as uuidv4 } from 'https://jspm.dev/uuid';
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyDXZDJGiNudokW6h04TornneQt5_xtep6Y",
-    authDomain: "inventory-management-b330b.firebaseapp.com",
-    projectId: "inventory-management-b330b",
-    storageBucket: "inventory-management-b330b.firebasestorage.app",
-    messagingSenderId: "863294594287",
-    appId: "1:863294594287:web:49b1e9567abe0939544f1a",
-    measurementId: "G-E7H9J01X63"
+    apiKey: "AIzaSyCu3QPSWVPn4ShOGrWF1V0AAzylEnsrlj0",
+    authDomain: "inventory-67dc6.firebaseapp.com",
+    projectId: "inventory-67dc6",
+    storageBucket: "inventory-67dc6.firebasestorage.app",
+    messagingSenderId: "990674251976",
+    appId: "1:990674251976:web:4ecf0da10934e45dd4b5fd",
+    measurementId: "G-KPBR13NFH6"
 };
 
-// Initialize Firebase (Ensure correct order!)
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
-const storage = getStorage(app); // **CRITICAL: Initialize Storage AFTER app**
 
 document.addEventListener('DOMContentLoaded', function () {
-
+    // Check if user is logged in
     onAuthStateChanged(auth, (user) => {
         if (!user) {
-            window.location.href = 'login.html'; // Redirect to login if not authenticated
-        } else {
-            // Load files when authenticated
-            loadFiles();
+            // Redirect to login page if not logged in
+            window.location.href = "login.html";
         }
     });
 
@@ -78,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    async function addEntry() {
+    function addEntry() {
         const polarity = polaritySelect.value;
         const rating = ratingSelect.value;
         const productFamily = productFamilySelect.value;
@@ -92,25 +85,16 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const entry = { polarity, rating, productFamily, breakingCapacity, quantity, location };
-
-        try {
-            // Add a new document with a generated id.
-            const docRef = await addDoc(collection(db, "mcbEntries"), entry);
-            console.log("Document written with ID: ", docRef.id);
-            allEntries.push({id: docRef.id, ...entry}); // Store with ID
-            lastEntry = {id: docRef.id, ...entry};
-            displayLastMcbEntry(); //Update display
-             // Reset form fields
-            polaritySelect.value = '';
-            ratingSelect.value = '';
-            productFamilySelect.value = '';
-            updateBreakingCapacityOptions();
-            quantityInput.value = '';
-            locationInput.value = '';
-        } catch (e) {
-            console.error("Error adding document: ", e);
-            alert('Error adding entry to Firestore.');
-        }
+        allEntries.push(entry);
+        lastEntry = entry;
+        displayLastMcbEntry(); // Added this line
+        // Reset form fields
+        polaritySelect.value = '';
+        ratingSelect.value = '';
+        productFamilySelect.value = '';
+        updateBreakingCapacityOptions();
+        quantityInput.value = '';
+        locationInput.value = '';
     }
 
     function displayLastMcbEntry() {
@@ -124,14 +108,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 <td>${lastEntry.breakingCapacity}</td>
                 <td>${lastEntry.quantity}</td>
                 <td>${lastEntry.location}</td>
-                <td><button class="edit-entry" data-id="${lastEntry.id}">Edit</button></td>
+                <td><button class="edit-entry">Edit</button></td>
             `;
             entryTableBody.appendChild(row);
         }
     }
 
-
-    async function displayMcbEntries() {
+    // Function to display MCB entries
+    function displayMcbEntries() {
         entryTableBody.innerHTML = '';
         allEntries.forEach((entry, index) => { // Loop through all entries
             const row = document.createElement('tr');
@@ -151,40 +135,22 @@ document.addEventListener('DOMContentLoaded', function () {
     // Edit entry functionality
     entryTableBody?.addEventListener('click', function(event) {
         if (event.target.classList.contains('edit-entry')) {
-            editEntry(event.target.dataset.id);
+            editEntry();
         }
     });
 
-    async function editEntry(entryId) {
-        if (!entryId) {
-            console.warn("No entry ID provided for editing.");
-            return;
-        }
-        try {
-            // Retrieve the entry from Firestore
-            const entryDoc = allEntries.find(entry => entry.id === entryId);
+    function editEntry() {
+        if (lastEntry) {
+            // Populate the form with the last entry's data
+            polaritySelect.value = lastEntry.polarity;
+            ratingSelect.value = lastEntry.rating;
+            productFamilySelect.value = lastEntry.productFamily;
+            updateBreakingCapacityOptions();
+            breakingCapacitySelect.value = lastEntry.breakingCapacity;
+            quantityInput.value = lastEntry.quantity;
+            locationInput.value = lastEntry.location;
 
-            if (entryDoc) {
-                // Populate the form with the entry's data
-                polaritySelect.value = entryDoc.polarity;
-                ratingSelect.value = entryDoc.rating;
-                productFamilySelect.value = entryDoc.productFamily;
-                updateBreakingCapacityOptions();
-                breakingCapacitySelect.value = entryDoc.breakingCapacity;
-                quantityInput.value = entryDoc.quantity;
-                locationInput.value = entryDoc.location;
-
-                // Set the lastEntry to the current entry
-                lastEntry = entryDoc;
-
-                displayLastMcbEntry();
-            } else {
-                console.error("Entry not found in Firestore.");
-                alert("Entry not found. Please refresh the page.");
-            }
-        } catch (error) {
-            console.error("Error fetching entry from Firestore:", error);
-            alert("Failed to fetch entry for editing.");
+            displayLastMcbEntry();
         }
     }
 
@@ -197,6 +163,7 @@ document.addEventListener('DOMContentLoaded', function () {
         generateInventoryFileButton.style.display = 'inline-block';
     }
 
+    // Save all entries to a single file in Firestore.
     async function generateInventoryFile() {
         if (allEntries.length === 0) {
             alert('No entries to generate.');
@@ -212,12 +179,30 @@ document.addEventListener('DOMContentLoaded', function () {
         const csvRows = allEntries.map(entry => `${entry.polarity},${entry.rating},${entry.productFamily},${entry.breakingCapacity},${entry.quantity},${entry.location}`).join('\n');
         const csvContent = `${csvHeader}\n${csvRows}`;
 
-        // Create a Blob from the CSV content
-        const blob = new Blob([csvContent], { type: 'text/csv' });
-        const file = new File([blob], `${fileName}.csv`, { type: 'text/csv' });
+        try {
+            // Get the current user
+            const user = auth.currentUser;
+            if (!user) {
+                alert('User not logged in.');
+                return;
+            }
 
-        // Upload file to Firebase Storage
-        uploadFile(file, 'mcb');
+            // Add the file to Firestore
+            await addDoc(collection(db, 'mcbFiles'), {
+                fileName: `${fileName}.csv`,
+                content: csvContent,
+                createdAt: new Date(),
+                uid: user.uid // Associate the file with the user
+            });
+
+            alert('MCB entries saved to Firestore successfully!');
+            allEntries = [];
+            displayMcbEntries();
+            listFiles('mcb', document.querySelector('#mcb-tab tbody'));
+        } catch (error) {
+            console.error("Error saving to Firestore:", error);
+            alert('Failed to save MCB entries to Firestore: ' + error.message);
+        }
     }
 
     // Carton Entry Page Logic
@@ -243,15 +228,13 @@ document.addEventListener('DOMContentLoaded', function () {
     saveCartonFileButton?.addEventListener('click', saveCartonFile);
 
     // Load the excel data from local storage
-    const materialListElement = document.getElementById('material-list'); // Get the element here
-
-    if (materialListElement) { // Check if the element exists
+    window.onload = function() {
         const storedData = localStorage.getItem(MASTER_FILE_KEY);
         if (storedData) {
             materialData = JSON.parse(storedData);
             populateMaterialList();
         }
-    }
+    };
 
     function handleFileUpload(event) {
         const file = event.target.files[0];
@@ -272,13 +255,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function populateMaterialList() {
-        if (!materialListElement) return; // Safe check
-
-        materialListElement.innerHTML = '';
+        materialList.innerHTML = '';
         materialData.forEach(item => {
             const option = document.createElement('option');
             option.value = item['Material number'];
-            materialListElement.appendChild(option);
+            materialList.appendChild(option);
         });
     }
 
@@ -316,11 +297,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
 
-    async function addCartonEntry() {
+    function addCartonEntry() {
         const number = materialNumberInput.value;
         const description = materialDescriptionInput.value;
         const quantity = cartonQuantityInput.value;
-        const location = locationInput.value;
+        const location = cartonLocationInput.value;
 
         if (!description || !number || !quantity || !location) {
             alert('Please fill all fields before adding entry.');
@@ -328,26 +309,17 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const entry = { number, description, quantity, location };
+        allCartonEntries.push(entry);
+        lastCartonEntry = entry;
+        displayLastCartonEntry();//displayCartonEntries(); // Removed this line
 
-         try {
-            // Add a new document with a generated id.
-            const docRef = await addDoc(collection(db, "cartonEntries"), entry);
-            console.log("Document written with ID: ", docRef.id);
-            allCartonEntries.push({id: docRef.id, ...entry}); // Store with ID
-            lastCartonEntry = {id: docRef.id, ...entry};
-            displayLastCartonEntry(); // Update display
-             // Reset form fields
-            materialNumberInput.value = '';
-            materialDescriptionInput.value = '';
-            cartonQuantityInput.value = '';
-            cartonLocationInput.value = '';
-        } catch (e) {
-            console.error("Error adding document: ", e);
-            alert('Error adding entry to Firestore.');
-        }
+        materialNumberInput.value = '';
+        materialDescriptionInput.value = '';
+        cartonQuantityInput.value = '';
+        cartonLocationInput.value = '';
     }
 
-    function displayLastCartonEntry() {
+     function displayLastCartonEntry() {
         cartonEntryTableBody.innerHTML = '';
         if (lastCartonEntry) {
             const row = document.createElement('tr');
@@ -356,13 +328,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 <td>${lastCartonEntry.description}</td>
                 <td>${lastCartonEntry.quantity}</td>
                 <td>${lastCartonEntry.location}</td>
-                <td><button class="edit-carton-entry" data-id="${lastCartonEntry.id}">Edit</button></td>
+                <td><button class="edit-carton-entry">Edit</button></td>
             `;
             cartonEntryTableBody.appendChild(row);
         }
     }
 
-    async function displayCartonEntries() {
+    function displayCartonEntries() {
         cartonEntryTableBody.innerHTML = '';
         allCartonEntries.forEach((entry, index) => {
             const row = document.createElement('tr');
@@ -380,36 +352,18 @@ document.addEventListener('DOMContentLoaded', function () {
     // Edit carton entry functionality
     cartonEntryTableBody?.addEventListener('click', function(event) {
         if (event.target.classList.contains('edit-carton-entry')) {
-            editCartonEntry(event.target.dataset.id);
+            editCartonEntry();
         }
     });
 
-    async function editCartonEntry(entryId) {
-         if (!entryId) {
-            console.warn("No entry ID provided for editing.");
-            return;
-        }
-        try {
-            // Retrieve the entry from Firestore
-            const entryDoc = allCartonEntries.find(entry => entry.id === entryId);
+    function editCartonEntry() {
+         if (lastCartonEntry) {
+            materialNumberInput.value = lastCartonEntry.number;
+            materialDescriptionInput.value = lastCartonEntry.description;
+            cartonQuantityInput.value = lastCartonEntry.quantity;
+            cartonLocationInput.value = lastCartonEntry.location;
 
-            if (entryDoc) {
-                 materialNumberInput.value = entryDoc.number;
-                materialDescriptionInput.value = entryDoc.description;
-                cartonQuantityInput.value = entryDoc.quantity;
-                cartonLocationInput.value = entryDoc.location;
-
-                // Set the lastEntry to the current entry
-                lastCartonEntry = entryDoc;
-
-                displayLastCartonEntry();
-            } else {
-                console.error("Entry not found in Firestore.");
-                alert("Entry not found. Please refresh the page.");
-            }
-        } catch (error) {
-            console.error("Error fetching entry from Firestore:", error);
-            alert("Failed to fetch entry for editing.");
+            displayLastCartonEntry();
         }
     }
 
@@ -422,7 +376,7 @@ document.addEventListener('DOMContentLoaded', function () {
         saveCartonFileButton.style.display = 'inline-block';
     }
 
-    // Save the Carton file
+    // Save the Carton file in Firestore
     async function saveCartonFile() {
         if (allCartonEntries.length === 0) {
             alert('No entries to generate.');
@@ -437,69 +391,68 @@ document.addEventListener('DOMContentLoaded', function () {
         const csvRows = allCartonEntries.map(entry => `${entry.number},${entry.description},${entry.quantity},${entry.location}`).join('\n');
         const csvContent = `${csvHeader}\n${csvRows}`;
 
-        // Create a Blob from the CSV content
-        const blob = new Blob([csvContent], { type: 'text/csv' });
-        const file = new File([blob], `${fileName}.csv`, { type: 'text/csv' });
-
-        // Upload file to Firebase Storage
-        uploadFile(file, 'carton');
-    }
-
-    // Function to upload file to Firebase Storage
-    async function uploadFile(file, type) {
-        const user = auth.currentUser;
-        if (!user) {
-            alert('User not authenticated.');
-            return;
-        }
-
-        const storageRef = ref(storage, `files/${user.uid}/${type}/${file.name}`);
         try {
-            await uploadBytes(storageRef, file);
-            console.log('Uploaded a blob or file!');
+            // Get the current user
+            const user = auth.currentUser;
+            if (!user) {
+                alert('User not logged in.');
+                return;
+            }
 
-            // Get the download URL
-            const downloadURL = await getDownloadURL(storageRef);
-
-            // Save file metadata to Firestore
-            await addDoc(collection(db, 'files'), {
-                uid: user.uid,
-                name: file.name,
-                type: type,
-                url: downloadURL,
+            // Add the file to Firestore
+            await addDoc(collection(db, 'cartonFiles'), {
+                fileName: `${fileName}.csv`,
+                content: csvContent,
                 createdAt: new Date(),
-                storagePath: storageRef.fullPath // Store the full path
+                uid: user.uid // Associate the file with the user
             });
 
-            alert('File saved successfully!');
-            loadFiles(); // Refresh file list
+            alert('Carton entries saved to Firestore successfully!');
+            allCartonEntries = [];
+            displayCartonEntries();
+            listFiles('carton', document.querySelector('#carton-tab tbody'));
         } catch (error) {
-            console.error('Error uploading file: ', error);
-            alert('Error saving file.');
+            console.error("Error saving to Firestore:", error);
+            alert('Failed to save Carton entries to Firestore: ' + error.message);
         }
     }
 
-    // Function to load files from Firestore
-    async function loadFiles() {
-        const user = auth.currentUser;
-        if (!user) return;
-
-        const mcbTableBody = document.querySelector('#mcb-tab tbody');
-        const cartonTableBody = document.querySelector('#carton-tab tbody');
-        if (!mcbTableBody || !cartonTableBody) return;
-
-        // Clear existing lists
-        mcbTableBody.innerHTML = '';
-        cartonTableBody.innerHTML = '';
-
-        const filesCol = collection(db, 'files');
-        const q = query(filesCol, where('uid', '==', user.uid)); // Filter by user ID
+    // Listing files from Firestore on the Physical Counting page
+    async function listFiles(type, tableBody) {
+        tableBody.innerHTML = '';
+        let files = [];
 
         try {
-            const querySnapshot = await getDocs(q);
+            // Get the current user
+            const user = auth.currentUser;
+            if (!user) {
+                alert('User not logged in.');
+                return;
+            }
+
+            let querySnapshot;
+            if (type === 'mcb') {
+                querySnapshot = await getDocs(collection(db, 'mcbFiles'));
+            } else if (type === 'carton') {
+                querySnapshot = await getDocs(collection(db, 'cartonFiles'));
+            }
+
             querySnapshot.forEach((doc) => {
-                const file = doc.data();
-                const fileDate = new Date(file.createdAt.seconds * 1000); // Convert seconds to milliseconds
+                // Filter files by user ID
+                if (doc.data().uid === user.uid) {
+                    files.push({ id: doc.id, ...doc.data() }); // Store the doc.id()
+                }
+            });
+
+            if (!files || files.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="2">No files found.</td></tr>';
+                return;
+            }
+
+            files.forEach((file, index) => {
+                const row = document.createElement('tr');
+                row.classList.add('bold');
+                const fileDate = new Date(file.createdAt.toDate()); // Convert Firebase Timestamp to JavaScript Date
                 const formattedDate = fileDate.toLocaleDateString('en-US', {
                     year: 'numeric',
                     month: 'short',
@@ -508,60 +461,91 @@ document.addEventListener('DOMContentLoaded', function () {
                     minute: '2-digit',
                     hour12: false // Use 24-hour format
                 });
-                const row = document.createElement('tr');
-                row.classList.add('bold');
+
                 row.innerHTML = `
-                    <td>${file.name}</td>
+                    <td>${file.fileName}</td>
                     <td>
-                        <a href="${file.url}" download="${file.name}" class="download-file">Download</a>
-                        <button class="delete-file" data-id="${doc.id}" data-path="${file.storagePath}" data-type="${file.type}">Delete</button>
+                        <button class="download-file" data-index="${index}" data-type="${type}" data-file-id="${file.id}">Download</button>
+                        <button class="delete-file" data-index="${index}" data-type="${type}" data-file-id="${file.id}">Delete</button>
                         <span class="file-date">Saved: ${formattedDate}</span>
                     </td>`;
-
-                if (file.type === 'mcb') {
-                    mcbTableBody.appendChild(row);
-                } else if (file.type === 'carton') {
-                    cartonTableBody.appendChild(row);
-                }
+                tableBody.appendChild(row);
             });
         } catch (error) {
-            console.error('Error getting files: ', error);
-            alert('Failed to load files.');
+            console.error("Error fetching files from Firestore:", error);
+            alert('Failed to fetch files from Firestore: ' + error.message);
         }
     }
 
-    // Function to delete file from Firebase Storage and Firestore
-    async function deleteFile(fileId, filePath, fileType) {
-        const user = auth.currentUser;
-        if (!user) {
-            alert('User not authenticated.');
-            return;
-        }
-
-        const fileRef = ref(storage, filePath);
-
+    // Download file from Firestore
+    async function downloadFileLocal(index, type, fileId) {
         try {
-            // Delete from Storage
-            await deleteObject(fileRef);
+            let querySnapshot;
+            if (type === 'mcb') {
+                querySnapshot = await getDocs(collection(db, 'mcbFiles'));
+            } else if (type === 'carton') {
+                querySnapshot = await getDocs(collection(db, 'cartonFiles'));
+            }
 
-            // Delete metadata from Firestore
-            await deleteDoc(doc(db, 'files', fileId));
+            let file;
+             querySnapshot.forEach((doc) => {
+                if (doc.id === fileId) {
+                    file = { id: doc.id, ...doc.data() }; // Store the doc.id()
+                }
+            });
 
-            alert('File deleted successfully!');
-            loadFiles(); // Refresh file list
+            if (file) {
+                const downloadLink = document.createElement('a');
+                downloadLink.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(file.content));
+                downloadLink.setAttribute('download', file.fileName);
+                downloadLink.style.display = 'none';
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+            }
         } catch (error) {
-            console.error('Error deleting file: ', error);
-            alert('Error deleting file.');
+            console.error("Error downloading file from Firestore:", error);
+            alert('Failed to download file from Firestore: ' + error.message);
+        }
+    }
+
+    // Delete file from Firestore
+    async function deleteFileLocal(index, type, fileId) {
+        try {
+            // Get the current user
+            const user = auth.currentUser;
+            if (!user) {
+                alert('User not logged in.');
+                return;
+            }
+            if (type === 'mcb') {
+                await deleteDoc(doc(db, "mcbFiles", fileId));
+            } else if (type === 'carton') {
+                await deleteDoc(doc(db, "cartonFiles", fileId));
+            }
+            alert('File deleted successfully!');
+            const tableBody = (type === 'mcb')
+                ? document.querySelector('#mcb-tab tbody')
+                : document.querySelector('#carton-tab tbody');
+            await listFiles(type, tableBody);
+        } catch (error) {
+            console.error("Error deleting file from Firestore:", error);
+            alert('Failed to delete file from Firestore: ' + error.message);
         }
     }
 
     // Global event listener for download and delete buttons on Physical Counting page
     document.querySelector('.content')?.addEventListener('click', function (event) {
-        if (event.target.classList.contains('delete-file')) {
-            const fileId = event.target.dataset.id;
-            const filePath = event.target.dataset.path;
-            const fileType = event.target.dataset.type;
-            deleteFile(fileId, filePath, fileType);
+        if (event.target.classList.contains('download-file')) {
+            const index = parseInt(event.target.dataset.index);
+            const type = event.target.dataset.type;
+            const fileId = event.target.dataset.fileId;
+            downloadFileLocal(index, type, fileId);
+        } else if (event.target.classList.contains('delete-file')) {
+            const index = parseInt(event.target.dataset.index);
+            const type = event.target.dataset.type;
+             const fileId = event.target.dataset.fileId;
+            deleteFileLocal(index, type, fileId);
         }
     });
 
@@ -569,9 +553,23 @@ document.addEventListener('DOMContentLoaded', function () {
     if (productFamilySelect) {
         updateBreakingCapacityOptions();
     }
-     // Function to save MCB entries to localStorage (called from Physical Counting page)
+
+    // Load file lists on page load for Physical Counting
+    const mcbTab = document.getElementById('mcb-tab');
+    const cartonTab = document.getElementById('carton-tab');
+
+    if (mcbTab) {
+        const mcbTableBody = mcbTab.querySelector('tbody');
+        listFiles('mcb', mcbTableBody);
+    }
+
+    if (cartonTab) {
+        const cartonTableBody = cartonTab.querySelector('tbody');
+        listFiles('carton', cartonTableBody);
+    }
+     // Function to save MCB entries to Firestore (called from Physical Counting page)
      window.saveMcbEntries = async function () {
-        if (allEntries.length === 0) {
+         if (allEntries.length === 0) {
             alert('No MCB entries to save.');
             return;
         }
@@ -585,14 +583,32 @@ document.addEventListener('DOMContentLoaded', function () {
         const csvRows = allEntries.map(entry => `${entry.polarity},${entry.rating},${entry.productFamily},${entry.breakingCapacity},${entry.quantity},${entry.location}`).join('\n');
         const csvContent = `${csvHeader}\n${csvRows}`;
 
-          // Create a Blob from the CSV content
-        const blob = new Blob([csvContent], { type: 'text/csv' });
-        const file = new File([blob], `${fileName}.csv`, { type: 'text/csv' });
+        try {
+            // Get the current user
+            const user = auth.currentUser;
+            if (!user) {
+                alert('User not logged in.');
+                return;
+            }
 
-        // Upload file to Firebase Storage
-        uploadFile(file, 'mcb');
+            // Add the file to Firestore
+            await addDoc(collection(db, 'mcbFiles'), {
+                fileName: `${fileName}.csv`,
+                content: csvContent,
+                createdAt: new Date(),
+                uid: user.uid // Associate the file with the user
+            });
+
+            alert('MCB entries saved to Firestore successfully!');
+            allEntries = [];
+            displayMcbEntries();
+            listFiles('mcb', document.querySelector('#mcb-tab tbody'));
+        } catch (error) {
+            console.error("Error saving to Firestore:", error);
+            alert('Failed to save MCB entries to Firestore: ' + error.message);
+        }
     };
-     // Function to save Carton entries to localStorage (called from Physical Counting page)
+     // Function to save Carton entries to Firestore (called from Physical Counting page)
      window.saveCartonEntries = async function () {
           if (allCartonEntries.length === 0) {
             alert('No entries to generate.');
@@ -607,11 +623,29 @@ document.addEventListener('DOMContentLoaded', function () {
         const csvRows = allCartonEntries.map(entry => `${entry.number},${entry.description},${entry.quantity},${entry.location}`).join('\n');
         const csvContent = `${csvHeader}\n${csvRows}`;
 
-        // Create a Blob from the CSV content
-        const blob = new Blob([csvContent], { type: 'text/csv' });
-        const file = new File([blob], `${fileName}.csv`, { type: 'text/csv' });
+        try {
+            // Get the current user
+            const user = auth.currentUser;
+            if (!user) {
+                alert('User not logged in.');
+                return;
+            }
 
-        // Upload file to Firebase Storage
-        uploadFile(file, 'carton');
+            // Add the file to Firestore
+            await addDoc(collection(db, 'cartonFiles'), {
+                fileName: `${fileName}.csv`,
+                content: csvContent,
+                createdAt: new Date(),
+                uid: user.uid // Associate the file with the user
+            });
+
+            alert('Carton entries saved to Firestore successfully!');
+            allCartonEntries = [];
+            displayCartonEntries();
+            listFiles('carton', document.querySelector('#carton-tab tbody'));
+        } catch (error) {
+            console.error("Error saving to Firestore:", error);
+            alert('Failed to save Carton entries to Firestore: ' + error.message);
+        }
     };
 });
