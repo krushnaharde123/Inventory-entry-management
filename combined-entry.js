@@ -1,8 +1,19 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
-import { firebaseConfig } from './firebaseConfig.js'; // Import Firebase configuration
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
 
+// Your web app's Firebase configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyDXZDJGiNudokW6h04TornneQt5_xtep6Y",
+    authDomain: "inventory-management-b330b.firebaseapp.com",
+    projectId: "inventory-management-b330b",
+    storageBucket: "inventory-management-b330b.firebasestorage.app",
+    messagingSenderId: "863294594287",
+    appId: "1:863294594287:web:49b1e9567abe0939544f1a",
+    measurementId: "G-E7H9J01X63"
+};
+
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
@@ -81,7 +92,7 @@ document.addEventListener('DOMContentLoaded', function () {
             console.log("Document written with ID: ", docRef.id);
             allEntries.push({id: docRef.id, ...entry}); // Store with ID
             lastEntry = {id: docRef.id, ...entry};
-            displayLastMcbEntry(); //displayMcbEntries(); // Update display
+            displayLastMcbEntry(); //Update display
              // Reset form fields
             polaritySelect.value = '';
             ratingSelect.value = '';
@@ -325,7 +336,7 @@ document.addEventListener('DOMContentLoaded', function () {
             console.log("Document written with ID: ", docRef.id);
             allCartonEntries.push({id: docRef.id, ...entry}); // Store with ID
             lastCartonEntry = {id: docRef.id, ...entry};
-            displayLastCartonEntry(); //displayCartonEntries(); // Removed this line
+            displayLastCartonEntry(); // Update display
              // Reset form fields
             materialNumberInput.value = '';
             materialDescriptionInput.value = '';
