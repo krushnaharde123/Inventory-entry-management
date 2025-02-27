@@ -1,6 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
+import { getStorage, ref, uploadBytes, listAll, deleteObject, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js";
+import { v4 as uuidv4 } from 'https://jspm.dev/uuid';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -17,14 +19,19 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+const storage = getStorage(app);
 
 document.addEventListener('DOMContentLoaded', function () {
 
     onAuthStateChanged(auth, (user) => {
         if (!user) {
             window.location.href = 'login.html'; // Redirect to login if not authenticated
+        } else {
+            // Load files when authenticated
+            loadFiles();
         }
     });
+
     // MCB Entry Page Logic
     const productFamilySelect = document.getElementById('product-family');
     const breakingCapacitySelect = document.getElementById('breaking-capacity');
@@ -205,30 +212,12 @@ document.addEventListener('DOMContentLoaded', function () {
         const csvRows = allEntries.map(entry => `${entry.polarity},${entry.rating},${entry.productFamily},${entry.breakingCapacity},${entry.quantity},${entry.location}`).join('\n');
         const csvContent = `${csvHeader}\n${csvRows}`;
 
-        // Save file content in localStorage under "mcbFiles".
-        let mcbFiles = JSON.parse(localStorage.getItem('mcbFiles') || '[]');
-        const createdAt = new Date().toISOString();
-        mcbFiles.push({ fileName: `${fileName}.csv`, content: csvContent, createdAt: createdAt });
-        localStorage.setItem('mcbFiles', JSON.stringify(mcbFiles));
-
         // Create a Blob from the CSV content
         const blob = new Blob([csvContent], { type: 'text/csv' });
+        const file = new File([blob], `${fileName}.csv`, { type: 'text/csv' });
 
-        // Create a download link
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${fileName}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url); // Free up memory
-
-        alert('MCB entries saved to file successfully!');
-        // Clear all entries after saving
-        allEntries = [];
-        displayMcbEntries(); // Clear the table
-        listFiles('mcb', document.querySelector('#mcb-tab tbody')); // Update file list
+        // Upload file to Firebase Storage
+        uploadFile(file, 'mcb');
     }
 
     // Carton Entry Page Logic
@@ -444,139 +433,137 @@ document.addEventListener('DOMContentLoaded', function () {
         const csvRows = allCartonEntries.map(entry => `${entry.number},${entry.description},${entry.quantity},${entry.location}`).join('\n');
         const csvContent = `${csvHeader}\n${csvRows}`;
 
-        // Save file content in localStorage under "cartonFiles".
-        let cartonFiles = JSON.parse(localStorage.getItem('cartonFiles') || '[]');
-        const createdAt = new Date().toISOString();
-        cartonFiles.push({ fileName: `${fileName}.csv`, content: csvContent, createdAt: createdAt });
-        localStorage.setItem('cartonFiles', JSON.stringify(cartonFiles));
-
         // Create a Blob from the CSV content
         const blob = new Blob([csvContent], { type: 'text/csv' });
+        const file = new File([blob], `${fileName}.csv`, { type: 'text/csv' });
 
-        // Create a download link
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${fileName}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url); // Free up memory
-
-        alert('Carton entries saved to file successfully!');
-        allCartonEntries = [];
-        displayCartonEntries(); // Clear the table
-        listFiles('carton', document.querySelector('#carton-tab tbody')); // Update file list
+        // Upload file to Firebase Storage
+        uploadFile(file, 'carton');
     }
 
-    // Listing files from localStorage on the Physical Counting page
-    function listFiles(type, tableBody) {
-        tableBody.innerHTML = '';
-        let files = [];
-        if (type === 'mcb') {
-            files = JSON.parse(localStorage.getItem('mcbFiles') || '[]');
-        } else if (type === 'carton') {
-            files = JSON.parse(localStorage.getItem('cartonFiles') || '[]');
-        }
-        if (!files || files.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="2">No files found.</td></tr>';
+    // Function to upload file to Firebase Storage
+    async function uploadFile(file, type) {
+        const user = auth.currentUser;
+        if (!user) {
+            alert('User not authenticated.');
             return;
         }
-        files.forEach((file, index) => {
-            const row = document.createElement('tr');
-            row.classList.add('bold');
-            const fileDate = new Date(file.createdAt);
-             const formattedDate = fileDate.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false // Use 24-hour format
+
+        const storageRef = ref(storage, `files/${user.uid}/${type}/${file.name}`);
+        try {
+            await uploadBytes(storageRef, file);
+            console.log('Uploaded a blob or file!');
+
+            // Get the download URL
+            const downloadURL = await getDownloadURL(storageRef);
+
+            // Save file metadata to Firestore
+            await addDoc(collection(db, 'files'), {
+                uid: user.uid,
+                name: file.name,
+                type: type,
+                url: downloadURL,
+                createdAt: new Date(),
+                storagePath: storageRef.fullPath // Store the full path
             });
 
-            row.innerHTML = `
-                <td>${file.fileName}</td>
-                <td>
-                    <button class="download-file" data-index="${index}" data-type="${type}">Download</button>
-                    <button class="delete-file" data-index="${index}" data-type="${type}">Delete</button>
-                    <span class="file-date">Saved: ${formattedDate}</span>
-                </td>`;
-            tableBody.appendChild(row);
-        });
-    }
-
-    // Download file from localStorage
-    function downloadFileLocal(index, type) {
-        let files = [];
-        if (type === 'mcb') {
-            files = JSON.parse(localStorage.getItem('mcbFiles') || '[]');
-        } else if (type === 'carton') {
-            files = JSON.parse(localStorage.getItem('cartonFiles') || '[]');
-        }
-        const file = files[index];
-        if (file) {
-            const downloadLink = document.createElement('a');
-            downloadLink.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(file.content));
-            downloadLink.setAttribute('download', file.fileName);
-            downloadLink.style.display = 'none';
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
+            alert('File saved successfully!');
+            loadFiles(); // Refresh file list
+        } catch (error) {
+            console.error('Error uploading file: ', error);
+            alert('Error saving file.');
         }
     }
 
-    // Delete file from localStorage
-    function deleteFileLocal(index, type) {
-        let files = [];
-        if (type === 'mcb') {
-            files = JSON.parse(localStorage.getItem('mcbFiles') || '[]');
-        } else if (type === 'carton') {
-            files = JSON.parse(localStorage.getItem('cartonFiles') || '[]');
+    // Function to load files from Firestore
+    async function loadFiles() {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const mcbTableBody = document.querySelector('#mcb-tab tbody');
+        const cartonTableBody = document.querySelector('#carton-tab tbody');
+        if (!mcbTableBody || !cartonTableBody) return;
+
+        // Clear existing lists
+        mcbTableBody.innerHTML = '';
+        cartonTableBody.innerHTML = '';
+
+        const filesCol = collection(db, 'files');
+        const q = query(filesCol, where('uid', '==', user.uid)); // Filter by user ID
+
+        try {
+            const querySnapshot = await getDocs(q);
+            querySnapshot.forEach((doc) => {
+                const file = doc.data();
+                const fileDate = new Date(file.createdAt.seconds * 1000); // Convert seconds to milliseconds
+                const formattedDate = fileDate.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false // Use 24-hour format
+                });
+                const row = document.createElement('tr');
+                row.classList.add('bold');
+                row.innerHTML = `
+                    <td>${file.name}</td>
+                    <td>
+                        <a href="${file.url}" download="${file.name}" class="download-file">Download</a>
+                        <button class="delete-file" data-id="${doc.id}" data-path="${file.storagePath}" data-type="${file.type}">Delete</button>
+                        <span class="file-date">Saved: ${formattedDate}</span>
+                    </td>`;
+
+                if (file.type === 'mcb') {
+                    mcbTableBody.appendChild(row);
+                } else if (file.type === 'carton') {
+                    cartonTableBody.appendChild(row);
+                }
+            });
+        } catch (error) {
+            console.error('Error getting files: ', error);
+            alert('Failed to load files.');
         }
-        files.splice(index, 1);
-        if (type === 'mcb') {
-            localStorage.setItem('mcbFiles', JSON.stringify(files));
-        } else if (type === 'carton') {
-            localStorage.setItem('cartonFiles', JSON.stringify(files));
+    }
+
+    // Function to delete file from Firebase Storage and Firestore
+    async function deleteFile(fileId, filePath, fileType) {
+        const user = auth.currentUser;
+        if (!user) {
+            alert('User not authenticated.');
+            return;
         }
-        alert('File deleted successfully!');
-        const tableBody = (type === 'mcb')
-            ? document.querySelector('#mcb-tab tbody')
-            : document.querySelector('#carton-tab tbody');
-        listFiles(type, tableBody);
+
+        const fileRef = ref(storage, filePath);
+
+        try {
+            // Delete from Storage
+            await deleteObject(fileRef);
+
+            // Delete metadata from Firestore
+            await deleteDoc(doc(db, 'files', fileId));
+
+            alert('File deleted successfully!');
+            loadFiles(); // Refresh file list
+        } catch (error) {
+            console.error('Error deleting file: ', error);
+            alert('Error deleting file.');
+        }
     }
 
     // Global event listener for download and delete buttons on Physical Counting page
     document.querySelector('.content')?.addEventListener('click', function (event) {
-        if (event.target.classList.contains('download-file')) {
-            const index = parseInt(event.target.dataset.index);
-            const type = event.target.dataset.type;
-            downloadFileLocal(index, type);
-        } else if (event.target.classList.contains('delete-file')) {
-            const index = parseInt(event.target.dataset.index);
-            const type = event.target.dataset.type;
-            deleteFileLocal(index, type);
+        if (event.target.classList.contains('delete-file')) {
+            const fileId = event.target.dataset.id;
+            const filePath = event.target.dataset.path;
+            const fileType = event.target.dataset.type;
+            deleteFile(fileId, filePath, fileType);
         }
     });
 
     // Initialize breaking capacity options on page load for MCB Entry
     if (productFamilySelect) {
         updateBreakingCapacityOptions();
-    }
-
-    // Load file lists on page load for Physical Counting
-    const mcbTab = document.getElementById('mcb-tab');
-    const cartonTab = document.getElementById('carton-tab');
-
-    if (mcbTab) {
-        const mcbTableBody = mcbTab.querySelector('tbody');
-        listFiles('mcb', mcbTableBody);
-    }
-
-    if (cartonTab) {
-        const cartonTableBody = cartonTab.querySelector('tbody');
-        listFiles('carton', cartonTableBody);
     }
      // Function to save MCB entries to localStorage (called from Physical Counting page)
      window.saveMcbEntries = async function () {
@@ -594,30 +581,12 @@ document.addEventListener('DOMContentLoaded', function () {
         const csvRows = allEntries.map(entry => `${entry.polarity},${entry.rating},${entry.productFamily},${entry.breakingCapacity},${entry.quantity},${entry.location}`).join('\n');
         const csvContent = `${csvHeader}\n${csvRows}`;
 
-        // Save file content in localStorage under "mcbFiles".
-        let mcbFiles = JSON.parse(localStorage.getItem('mcbFiles') || '[]');
-        const createdAt = new Date().toISOString();
-        mcbFiles.push({ fileName: `${fileName}.csv`, content: csvContent, createdAt: createdAt });
-        localStorage.setItem('mcbFiles', JSON.stringify(mcbFiles));
-
           // Create a Blob from the CSV content
         const blob = new Blob([csvContent], { type: 'text/csv' });
+        const file = new File([blob], `${fileName}.csv`, { type: 'text/csv' });
 
-        // Create a download link
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${fileName}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url); // Free up memory
-
-        alert('MCB entries saved to file successfully!');
-        // Clear all entries after saving
-        allEntries = [];
-        displayMcbEntries(); // Clear the table
-         listFiles('mcb', document.querySelector('#mcb-tab tbody')); // Update file list
+        // Upload file to Firebase Storage
+        uploadFile(file, 'mcb');
     };
      // Function to save Carton entries to localStorage (called from Physical Counting page)
      window.saveCartonEntries = async function () {
@@ -634,28 +603,13 @@ document.addEventListener('DOMContentLoaded', function () {
         const csvRows = allCartonEntries.map(entry => `${entry.number},${entry.description},${entry.quantity},${entry.location}`).join('\n');
         const csvContent = `${csvHeader}\n${csvRows}`;
 
-        // Save file content in localStorage under "cartonFiles".
-        let cartonFiles = JSON.parse(localStorage.getItem('cartonFiles') || '[]');
-        const createdAt = new Date().toISOString();
-        cartonFiles.push({ fileName: `${fileName}.csv`, content: csvContent, createdAt: createdAt });
-        localStorage.setItem('cartonFiles', JSON.stringify(cartonFiles));
-
-          // Create a Blob from the CSV content
+        // Create a Blob from the CSV content
         const blob = new Blob([csvContent], { type: 'text/csv' });
+        const file = new File([blob], `${fileName}.csv`, { type: 'text/csv' });
 
-        // Create a download link
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${fileName}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url); // Free up memory
-
-        alert('Carton entries saved to file successfully!');
-        allCartonEntries = [];
-        displayCartonEntries();
-         listFiles('carton', document.querySelector('#carton-tab tbody')); // Update file list
+        // Upload file to Firebase Storage
+        uploadFile(file, 'carton');
     };
 });
+
+import { query, where } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
