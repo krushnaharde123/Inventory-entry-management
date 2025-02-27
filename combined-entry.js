@@ -3,6 +3,8 @@ import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } 
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, listAll } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-storage.js";
 
+let storage; // Declare storage outside the function
+
 async function initializeFirebase() {
     // Your web app's Firebase configuration
     const firebaseConfig = {
@@ -15,22 +17,26 @@ async function initializeFirebase() {
         measurementId: "G-E7H9J01X63"
     };
 
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-
-    // Initialize Firebase Storage
-    const storage = getStorage(app);
-    return storage;
-}
-
-document.addEventListener('DOMContentLoaded', async function () {
-    let storage;
     try {
-        storage = await initializeFirebase();
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+
+        // Initialize Firebase Storage
+        storage = getStorage(app);
+        console.log("Firebase Storage initialized successfully!");
     } catch (error) {
         console.error("Firebase initialization error:", error);
         alert("Failed to initialize Firebase. Check console for details.");
-        return; // Stop if Firebase fails to initialize
+        throw error; // Re-throw the error to prevent the app from running
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async function () {
+    try {
+        await initializeFirebase(); // Wait for Firebase to initialize
+    } catch (error) {
+        console.error("Firebase initialization failed:", error);
+        return; // Prevent the rest of the app from running
     }
 
     onAuthStateChanged(auth, (user) => {
@@ -211,7 +217,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
         } catch (error) {
             console.error("Error fetching entry from Firestore:", error);
-            alert("Failed to fetch entry for editing.");
+            alert("Entry not found. Please refresh the page.");
         }
     }
 
@@ -225,6 +231,11 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     async function generateInventoryFile() {
+         if (!storage) {
+            console.error("Firebase Storage is not initialized.");
+            alert("Firebase Storage is not available. Please check console.");
+            return;
+        }
         if (allEntries.length === 0) {
             alert('No entries to generate.');
             return;
@@ -294,7 +305,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             reader.onload = function (e) {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheetName = workbook.SheetNames[0];
+                const firstSheetName = workbook.Sheets[firstSheetName];
                 const worksheet = workbook.Sheets[firstSheetName];
                 materialData = XLSX.utils.sheet_to_json(worksheet);
                 console.log("Carton: Parsed Excel data:", materialData); // Inspect the data
@@ -360,7 +371,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         const number = materialNumberInput.value;
         const description = materialDescriptionInput.value;
         const quantity = cartonQuantityInput.value;
-        const location = cartonLocationInput.value;
+        const location = locationInput.value;
 
         if (!description || !number || !quantity || !location) {
             alert('Please fill all fields before adding entry.');
@@ -464,6 +475,11 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // Save the Carton file
     async function saveCartonFile() {
+         if (!storage) {
+            console.error("Firebase Storage is not initialized.");
+            alert("Firebase Storage is not available. Please check console.");
+            return;
+        }
         if (allCartonEntries.length === 0) {
             alert('No entries to generate.');
             return;
@@ -496,6 +512,11 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     async function listFiles(type, tableBody) {
+         if (!storage) {
+            console.error("Firebase Storage is not initialized.");
+            alert("Firebase Storage is not available. Please check console.");
+            return;
+        }
         tableBody.innerHTML = '';
         let storageRef;
         if (type === 'mcb') {
@@ -523,56 +544,4 @@ document.addEventListener('DOMContentLoaded', async function () {
                     year: 'numeric',
                     month: 'short',
                     day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: false
-                });
-
-                row.innerHTML = `
-                    <td>${fileName}</td>
-                    <td>
-                        <a href="${url}" download="${fileName}" class="download-file">Download</a>
-                        <button class="delete-file" data-name="${fileName}" data-type="${type}">Delete</button>
-                        <span class="file-date">Saved: ${fileDate}</span>
-                    </td>`;
-                tableBody.appendChild(row);
-            });
-        } catch (error) {
-            console.error("Error listing files: ", error);
-            tableBody.innerHTML = '<tr><td colspan="2">Error loading files.</td></tr>';
-        }
-    }
-
-    async function deleteFile(fileName, type) {
-        let storageRef;
-        if (type === 'mcb') {
-            storageRef = ref(storage, `mcbFiles/${fileName}`);
-        } else if (type === 'carton') {
-            storageRef = ref(storage, `cartonFiles/${fileName}`);
-        } else {
-            console.error("Invalid file type specified.");
-            return;
-        }
-
-        try {
-            await deleteObject(storageRef);
-            alert('File deleted successfully!');
-            const tableBody = (type === 'mcb')
-                ? document.querySelector('#mcb-tab tbody')
-                : document.querySelector('#carton-tab tbody');
-            listFiles(type, tableBody);
-        } catch (error) {
-            console.error("Error deleting file: ", error);
-            alert('Error deleting file.');
-        }
-    }
-
-    // Global event listener for download and delete buttons on Physical Counting page
-    document.querySelector('.content')?.addEventListener('click', function (event) {
-        if (event.target.classList.contains('delete-file')) {
-            const fileName = event.target.dataset.name;
-            const type = event.target.dataset.type;
-            deleteFile(fileName, type);
-        }
-    });
-});
+                    hour: '2-digit
