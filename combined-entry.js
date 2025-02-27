@@ -18,6 +18,21 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
+// Make openTab globally accessible
+window.openTab = function(evt, tabName) {
+    var i, tabcontent, tablinks;
+    tabcontent = document.getElementsByClassName("tab-content");
+    for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+    }
+    tablinks = document.getElementsByClassName("tab-button");
+    for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+    }
+    document.getElementById(tabName).style.display = "block";
+    evt.currentTarget.className += " active";
+}
+
 document.addEventListener('DOMContentLoaded', function () {
 
     // onAuthStateChanged(auth, (user) => {
@@ -319,7 +334,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const number = materialNumberInput.value;
         const description = materialDescriptionInput.value;
         const quantity = cartonQuantityInput.value;
-        const location = cartonLocationInput.value;
+        const location = locationInput.value;
 
         if (!description || !number || !quantity || !location) {
             alert('Please fill all fields before adding entry.');
