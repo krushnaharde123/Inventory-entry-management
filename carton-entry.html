@@ -6,7 +6,7 @@
     <title>Carton Entry</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="combined-entry.js" defer></script>
+    <script type="module" src="combined-entry.js" defer></script>
 </head>
 <body>
     <div class="header">
@@ -61,13 +61,14 @@
                     <th>Material Description</th>
                     <th>Quantity</th>
                     <th>Location</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody></tbody>
         </table>
         <div class="action-buttons">
             <button type="button" id="preview-carton-file">Preview Carton File</button>
-            <button type="button" id="save-carton-file" style="display: none;">Save Carton File</button>
+            <button type="button" id="save-carton-file">Save Carton File</button>
         </div>
     </div>
 </body>
