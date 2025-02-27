@@ -59,24 +59,25 @@ document.addEventListener('DOMContentLoaded', function () {
     // Initialize breaking capacity options on page load for MCB Entry
     function initializeBreakingCapacity() {
         if (productFamilySelect && breakingCapacitySelect) {
-            console.log("productFamilySelect and breakingCapacitySelect exist");
+            console.log("MCB: productFamilySelect and breakingCapacitySelect exist");
             updateBreakingCapacityOptions(); // Call it immediately
 
             productFamilySelect.addEventListener('change', updateBreakingCapacityOptions);
+            console.log("MCB: Event listener added to productFamilySelect");
         } else {
-            console.log("productFamilySelect or breakingCapacitySelect does not exist");
+            console.log("MCB: productFamilySelect or breakingCapacitySelect does not exist");
         }
     }
 
     function updateBreakingCapacityOptions() {
         if (!productFamilySelect || !breakingCapacitySelect) {
-            console.warn("productFamilySelect or breakingCapacitySelect is null in updateBreakingCapacityOptions");
+            console.warn("MCB: productFamilySelect or breakingCapacitySelect is null in updateBreakingCapacityOptions");
             return;
         }
         const selectedFamily = productFamilySelect.value;
-        console.log("Selected Product Family:", selectedFamily); // Debugging
+        console.log("MCB: Selected Product Family:", selectedFamily); // Debugging
         const capacities = breakingCapacityData[selectedFamily] || [];
-        console.log("Capacities for selected family:", capacities); // Debugging
+        console.log("MCB: Capacities for selected family:", capacities); // Debugging
         breakingCapacitySelect.innerHTML = '';
         capacities.forEach(capacity => {
             const option = document.createElement('option');
@@ -285,7 +286,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const firstSheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheetName];
                 materialData = XLSX.utils.sheet_to_json(worksheet);
-                console.log("Parsed Excel data:", materialData); // Inspect the data
+                console.log("Carton: Parsed Excel data:", materialData); // Inspect the data
                 localStorage.setItem(MASTER_FILE_KEY, JSON.stringify(materialData));
                 populateMaterialList();
             };
@@ -294,6 +295,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function populateMaterialList() {
+         if (!materialList) {
+            console.warn("Carton: materialList is null");
+            return;
+        }
         materialList.innerHTML = '';
         materialData.forEach(item => {
             const option = document.createElement('option');
@@ -303,6 +308,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
    function handleMaterialNumberInput() {
+        if (!materialNumberInput || !materialDescriptionInput) {
+            console.warn("Carton: materialNumberInput or materialDescriptionInput is null");
+            return;
+        }
         const number = materialNumberInput.value;
 
         // Define possible keys for material description and number
@@ -313,25 +322,25 @@ document.addEventListener('DOMContentLoaded', function () {
             // Normalize both the input and the material number for comparison
             const normalizedNumber = number.trim().toLowerCase();
             const normalizedMaterialNumber = String(item[numberKey]).trim().toLowerCase(); // Ensure it's a string
-            console.log(`Comparing "${normalizedNumber}" with "${normalizedMaterialNumber}"`);
+            console.log(`Carton: Comparing "${normalizedNumber}" with "${normalizedMaterialNumber}"`);
 
             return normalizedNumber === normalizedMaterialNumber;
         });
 
         if (material) {
             const materialDescription = material[descriptionKey];
-            console.log("Found matching material:", material);
-            console.log("Material Description:", materialDescription);
+            console.log("Carton: Found matching material:", material);
+            console.log("Carton: Material Description:", materialDescription);
 
             if (materialDescription !== undefined && materialDescription !== null) {
                 materialDescriptionInput.value = materialDescription;
             } else {
                 materialDescriptionInput.value = '';
-                console.warn("Material description is undefined or null in the data.");
+                console.warn("Carton: Material description is undefined or null in the data.");
             }
         } else {
             materialDescriptionInput.value = '';
-            console.log("No matching material found.");
+            console.log("Carton: No matching material found.");
         }
     }
 
