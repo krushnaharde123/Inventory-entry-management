@@ -305,7 +305,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             reader.onload = function (e) {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheetName = workbook.Sheets[firstSheetName];
+                const firstSheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheetName];
                 materialData = XLSX.utils.sheet_to_json(worksheet);
                 console.log("Carton: Parsed Excel data:", materialData); // Inspect the data
@@ -371,7 +371,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         const number = materialNumberInput.value;
         const description = materialDescriptionInput.value;
         const quantity = cartonQuantityInput.value;
-        const location = locationInput.value;
+        const location = cartonLocationInput.value;
 
         if (!description || !number || !quantity || !location) {
             alert('Please fill all fields before adding entry.');
@@ -460,7 +460,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
         } catch (error) {
             console.error("Error fetching entry from Firestore:", error);
-            alert("Failed to fetch entry for editing.");
+            alert("Entry not found. Please refresh the page.");
         }
     }
 
@@ -544,4 +544,61 @@ document.addEventListener('DOMContentLoaded', async function () {
                     year: 'numeric',
                     month: 'short',
                     day: 'numeric',
-                    hour: '2-digit
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                });
+
+                row.innerHTML = `
+                    <td>${fileName}</td>
+                    <td>
+                        <a href="${url}" download="${fileName}" class="download-file">Download</a>
+                        <button class="delete-file" data-name="${fileName}" data-type="${type}">Delete</button>
+                        <span class="file-date">Saved: ${fileDate}</span>
+                    </td>`;
+                tableBody.appendChild(row);
+            });
+        } catch (error) {
+            console.error("Error listing files: ", error);
+            tableBody.innerHTML = '<tr><td colspan="2">Error loading files.</td></tr>';
+        }
+    }
+
+    async function deleteFile(fileName, type) {
+         if (!storage) {
+            console.error("Firebase Storage is not initialized.");
+            alert("Firebase Storage is not available. Please check console.");
+            return;
+        }
+        let storageRef;
+        if (type === 'mcb') {
+            storageRef = ref(storage, `mcbFiles/${fileName}`);
+        } else if (type === 'carton') {
+            storageRef = ref(storage, `cartonFiles/${fileName}`);
+        } else {
+            console.error("Invalid file type specified.");
+            return;
+        }
+
+        try {
+            await deleteObject(storageRef);
+            alert('File deleted successfully!');
+            const tableBody = (type === 'mcb')
+                ? document.querySelector('#mcb-tab tbody')
+                : document.querySelector('#carton-tab tbody');
+            listFiles(type, tableBody);
+        } catch (error) {
+            console.error("Error deleting file: ", error);
+            alert('Error deleting file.');
+        }
+    }
+
+    // Global event listener for download and delete buttons on Physical Counting page
+    document.querySelector('.content')?.addEventListener('click', function (event) {
+        if (event.target.classList.contains('delete-file')) {
+            const fileName = event.target.dataset.name;
+            const type = event.target.dataset.type;
+            deleteFile(fileName, type);
+        }
+    });
+});
