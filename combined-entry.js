@@ -243,13 +243,15 @@ document.addEventListener('DOMContentLoaded', function () {
     saveCartonFileButton?.addEventListener('click', saveCartonFile);
 
     // Load the excel data from local storage
-    window.onload = async function() {
+    const materialListElement = document.getElementById('material-list'); // Get the element here
+
+    if (materialListElement) { // Check if the element exists
         const storedData = localStorage.getItem(MASTER_FILE_KEY);
         if (storedData) {
             materialData = JSON.parse(storedData);
             populateMaterialList();
         }
-    };
+    }
 
     function handleFileUpload(event) {
         const file = event.target.files[0];
@@ -270,11 +272,13 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function populateMaterialList() {
-        materialList.innerHTML = '';
+        if (!materialListElement) return; // Safe check
+
+        materialListElement.innerHTML = '';
         materialData.forEach(item => {
             const option = document.createElement('option');
             option.value = item['Material number'];
-            materialList.appendChild(option);
+            materialListElement.appendChild(option);
         });
     }
 
