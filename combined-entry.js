@@ -1,26 +1,37 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, listAll } from "https://www.gstatic.com/firebasejs/9.6.3/firebase-storage.js";
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, listAll } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-storage.js";
 
-// Your web app's Firebase configuration
-const firebaseConfig = {
-    apiKey: "AIzaSyDXZDJGiNudokW6h04TornneQt5_xtep6Y",
-    authDomain: "inventory-management-b330b.firebaseapp.com",
-    projectId: "inventory-management-b330b",
-    storageBucket: "inventory-management-b330b.firebasestorage.app",
-    messagingSenderId: "863294594287",
-    appId: "1:863294594287:web:49b1e9567abe0939544f1a",
-    measurementId: "G-E7H9J01X63"
-};
+async function initializeFirebase() {
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyDXZDJGiNudokW6h04TornneQt5_xtep6Y",
+        authDomain: "inventory-management-b330b.firebaseapp.com",
+        projectId: "inventory-management-b330b",
+        storageBucket: "inventory-management-b330b.firebasestorage.app",
+        messagingSenderId: "863294594287",
+        appId: "1:863294594287:web:49b1e9567abe0939544f1a",
+        measurementId: "G-E7H9J01X63"
+    };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase Storage
-const storage = getStorage(app); // Initialize Firebase Storage
+    // Initialize Firebase Storage
+    const storage = getStorage(app);
+    return storage;
+}
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
+    let storage;
+    try {
+        storage = await initializeFirebase();
+    } catch (error) {
+        console.error("Firebase initialization error:", error);
+        alert("Failed to initialize Firebase. Check console for details.");
+        return; // Stop if Firebase fails to initialize
+    }
 
     onAuthStateChanged(auth, (user) => {
         if (!user) {
