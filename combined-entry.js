@@ -1,6 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, listAll } from "https://www.gstatic.com/firebasejs/9.6.3/firebase-storage.js";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -17,6 +18,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+const storage = getStorage(app); // Initialize Firebase Storage
 
 document.addEventListener('DOMContentLoaded', function () {
 
@@ -190,7 +192,6 @@ document.addEventListener('DOMContentLoaded', function () {
         generateInventoryFileButton.style.display = 'inline-block';
     }
 
-    // Save all entries to a single file in Firestore.
     async function generateInventoryFile() {
         if (allEntries.length === 0) {
             alert('No entries to generate.');
@@ -208,21 +209,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Create a Blob from the CSV content
         const blob = new Blob([csvContent], { type: 'text/csv' });
+        const storageRef = ref(storage, `mcbFiles/${fileName}.csv`);
 
-        // Create a download link
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${fileName}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url); // Free up memory
-
-        alert('MCB entries saved to file successfully!');
-        // Clear all entries after saving
-        allEntries = [];
-        displayMcbEntries(); // Clear the table
+        try {
+            await uploadBytes(storageRef, blob);
+            console.log('Uploaded a blob or file!');
+            alert('MCB entries saved to Firebase Storage successfully!');
+            allEntries = [];
+            displayMcbEntries();
+            listFiles('mcb', document.querySelector('#mcb-tab tbody'));
+        } catch (error) {
+            console.error("Error uploading file: ", error);
+            alert('Error saving MCB entries to Firebase Storage.');
+        }
     }
 
     // Carton Entry Page Logic
@@ -423,7 +422,7 @@ document.addEventListener('DOMContentLoaded', function () {
         saveCartonFileButton.style.display = 'inline-block';
     }
 
-    // Save the Carton file in Firestore
+    // Save the Carton file
     async function saveCartonFile() {
         if (allCartonEntries.length === 0) {
             alert('No entries to generate.');
@@ -438,113 +437,102 @@ document.addEventListener('DOMContentLoaded', function () {
         const csvRows = allCartonEntries.map(entry => `${entry.number},${entry.description},${entry.quantity},${entry.location}`).join('\n');
         const csvContent = `${csvHeader}\n${csvRows}`;
 
-         // Create a Blob from the CSV content
+        // Create a Blob from the CSV content
         const blob = new Blob([csvContent], { type: 'text/csv' });
 
-        // Create a download link
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${fileName}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url); // Free up memory
+        const storageRef = ref(storage, `cartonFiles/${fileName}.csv`);
 
-        alert('Carton entries saved to file successfully!');
-        // Clear all entries after saving
-        allCartonEntries = [];
-        displayCartonEntries(); // Clear the table
+        try {
+            await uploadBytes(storageRef, blob);
+            console.log('Uploaded a blob or file!');
+            alert('Carton entries saved to Firebase Storage successfully!');
+            allCartonEntries = [];
+            displayCartonEntries();
+            listFiles('carton', document.querySelector('#carton-tab tbody'));
+        } catch (error) {
+            console.error("Error uploading file: ", error);
+            alert('Error saving Carton entries to Firebase Storage.');
+        }
     }
 
-    // Listing files from localStorage on the Physical Counting page
-    function listFiles(type, tableBody) {
+    async function listFiles(type, tableBody) {
         tableBody.innerHTML = '';
-        let files = [];
+        let storageRef;
         if (type === 'mcb') {
-            files = JSON.parse(localStorage.getItem('mcbFiles') || '[]');
+            storageRef = ref(storage, 'mcbFiles');
         } else if (type === 'carton') {
-            files = JSON.parse(localStorage.getItem('cartonFiles') || '[]');
-        }
-        if (!files || files.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="2">No files found.</td></tr>';
+            storageRef = ref(storage, 'cartonFiles');
+        } else {
+            console.error("Invalid file type specified.");
             return;
         }
-        files.forEach((file, index) => {
-            const row = document.createElement('tr');
-            row.classList.add('bold');
-            const fileDate = new Date(file.createdAt);
-             const formattedDate = fileDate.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false // Use 24-hour format
+
+        try {
+            const res = await listAll(storageRef);
+            if (res.items.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="2">No files found.</td></tr>';
+                return;
+            }
+
+            res.items.forEach(async (itemRef) => {
+                const url = await getDownloadURL(itemRef);
+                const fileName = itemRef.name;
+                const row = document.createElement('tr');
+                row.classList.add('bold');
+                const fileDate = new Date().toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                });
+
+                row.innerHTML = `
+                    <td>${fileName}</td>
+                    <td>
+                        <a href="${url}" download="${fileName}" class="download-file">Download</a>
+                        <button class="delete-file" data-name="${fileName}" data-type="${type}">Delete</button>
+                        <span class="file-date">Saved: ${fileDate}</span>
+                    </td>`;
+                tableBody.appendChild(row);
             });
-
-            row.innerHTML = `
-                <td>${file.fileName}</td>
-                <td>
-                    <button class="download-file" data-index="${index}" data-type="${type}">Download</button>
-                    <button class="delete-file" data-index="${index}" data-type="${type}">Delete</button>
-                    <span class="file-date">Saved: ${formattedDate}</span>
-                </td>`;
-            tableBody.appendChild(row);
-        });
-    }
-
-    // Download file from localStorage
-    function downloadFileLocal(index, type) {
-        let files = [];
-        if (type === 'mcb') {
-            files = JSON.parse(localStorage.getItem('mcbFiles') || '[]');
-        } else if (type === 'carton') {
-            files = JSON.parse(localStorage.getItem('cartonFiles') || '[]');
-        }
-        const file = files[index];
-        if (file) {
-            const downloadLink = document.createElement('a');
-            downloadLink.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(file.content));
-            downloadLink.setAttribute('download', file.fileName);
-            downloadLink.style.display = 'none';
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
+        } catch (error) {
+            console.error("Error listing files: ", error);
+            tableBody.innerHTML = '<tr><td colspan="2">Error loading files.</td></tr>';
         }
     }
 
-    // Delete file from localStorage
-    function deleteFileLocal(index, type) {
-        let files = [];
+    async function deleteFile(fileName, type) {
+        let storageRef;
         if (type === 'mcb') {
-            files = JSON.parse(localStorage.getItem('mcbFiles') || '[]');
+            storageRef = ref(storage, `mcbFiles/${fileName}`);
         } else if (type === 'carton') {
-            files = JSON.parse(localStorage.getItem('cartonFiles') || '[]');
+            storageRef = ref(storage, `cartonFiles/${fileName}`);
+        } else {
+            console.error("Invalid file type specified.");
+            return;
         }
-        files.splice(index, 1);
-        if (type === 'mcb') {
-            localStorage.setItem('mcbFiles', JSON.stringify(files));
-        } else if (type === 'carton') {
-            localStorage.setItem('cartonFiles', JSON.stringify(files));
+
+        try {
+            await deleteObject(storageRef);
+            alert('File deleted successfully!');
+            const tableBody = (type === 'mcb')
+                ? document.querySelector('#mcb-tab tbody')
+                : document.querySelector('#carton-tab tbody');
+            listFiles(type, tableBody);
+        } catch (error) {
+            console.error("Error deleting file: ", error);
+            alert('Error deleting file.');
         }
-        alert('File deleted successfully!');
-        const tableBody = (type === 'mcb')
-            ? document.querySelector('#mcb-tab tbody')
-            : document.querySelector('#carton-tab tbody');
-        listFiles(type, tableBody);
     }
 
     // Global event listener for download and delete buttons on Physical Counting page
     document.querySelector('.content')?.addEventListener('click', function (event) {
-        if (event.target.classList.contains('download-file')) {
-            const index = parseInt(event.target.dataset.index);
+        if (event.target.classList.contains('delete-file')) {
+            const fileName = event.target.dataset.name;
             const type = event.target.dataset.type;
-            downloadFileLocal(index, type);
-        } else if (event.target.classList.contains('delete-file')) {
-            const index = parseInt(event.target.dataset.index);
-            const type = event.target.dataset.type;
-            deleteFileLocal(index, type);
+            deleteFile(fileName, type);
         }
     });
 
@@ -582,23 +570,21 @@ document.addEventListener('DOMContentLoaded', function () {
         const csvRows = allEntries.map(entry => `${entry.polarity},${entry.rating},${entry.productFamily},${entry.breakingCapacity},${entry.quantity},${entry.location}`).join('\n');
         const csvContent = `${csvHeader}\n${csvRows}`;
 
-          // Create a Blob from the CSV content
+        // Create a Blob from the CSV content
         const blob = new Blob([csvContent], { type: 'text/csv' });
+        const storageRef = ref(storage, `mcbFiles/${fileName}.csv`);
 
-        // Create a download link
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${fileName}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url); // Free up memory
-
-        alert('MCB entries saved to file successfully!');
-        // Clear all entries after saving
-        allEntries = [];
-        displayMcbEntries(); // Clear the table
+        try {
+            await uploadBytes(storageRef, blob);
+            console.log('Uploaded a blob or file!');
+            alert('MCB entries saved to Firebase Storage successfully!');
+            allEntries = [];
+            displayMcbEntries();
+            listFiles('mcb', document.querySelector('#mcb-tab tbody'));
+        } catch (error) {
+            console.error("Error uploading file: ", error);
+            alert('Error saving MCB entries to Firebase Storage.');
+        }
     };
      // Function to save Carton entries to localStorage (called from Physical Counting page)
      window.saveCartonEntries = async function () {
@@ -615,21 +601,21 @@ document.addEventListener('DOMContentLoaded', function () {
         const csvRows = allCartonEntries.map(entry => `${entry.number},${entry.description},${entry.quantity},${entry.location}`).join('\n');
         const csvContent = `${csvHeader}\n${csvRows}`;
 
-          // Create a Blob from the CSV content
+        // Create a Blob from the CSV content
         const blob = new Blob([csvContent], { type: 'text/csv' });
 
-        // Create a download link
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${fileName}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url); // Free up memory
+        const storageRef = ref(storage, `cartonFiles/${fileName}.csv`);
 
-        alert('Carton entries saved to file successfully!');
-        allCartonEntries = [];
-        displayCartonEntries();
+        try {
+            await uploadBytes(storageRef, blob);
+            console.log('Uploaded a blob or file!');
+            alert('Carton entries saved to Firebase Storage successfully!');
+            allCartonEntries = [];
+            displayCartonEntries();
+            listFiles('carton', document.querySelector('#carton-tab tbody'));
+        } catch (error) {
+            console.error("Error uploading file: ", error);
+            alert('Error saving Carton entries to Firebase Storage.');
+        }
     };
 });
