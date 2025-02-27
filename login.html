@@ -5,38 +5,77 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        .auth-container {
+            width: 300px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        input[type="email"],
+        input[type="password"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007ac3;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #005ca3;
+        }
+    </style>
 </head>
 <body>
     <div class="header">
         <div class="logo">SIEMENS</div>
     </div>
     <div class="content">
-        <h1>Login</h1>
-        <form id="login-form">
-            <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" required>
-            </div>
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" required>
-            </div>
-            <button type="submit">Login</button>
-        </form>
-        <p>Don't have an account? <a href="signup.html">Sign Up</a></p>
+        <div class="auth-container">
+            <h2>Login</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit">Login</button>
+            </form>
+            <p>Don't have an account? <a href="signup.html">Sign Up</a></p>
+        </div>
     </div>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
 
         const firebaseConfig = {
-            apiKey: "AIzaSyDXZDJGiNudokW6h04TornneQt5_xtep6Y",
-            authDomain: "inventory-management-b330b.firebaseapp.com",
-            projectId: "inventory-management-b330b",
-            storageBucket: "inventory-management-b330b.firebasestorage.app",
-            messagingSenderId: "863294594287",
-            appId: "1:863294594287:web:49b1e9567abe0939544f1a",
-            measurementId: "G-E7H9J01X63"
+            apiKey: "AIzaSyCu3QPSWVPn4ShOGrWF1V0AAzylEnsrlj0",
+            authDomain: "inventory-67dc6.firebaseapp.com",
+            projectId: "inventory-67dc6",
+            storageBucket: "inventory-67dc6.firebasestorage.app",
+            messagingSenderId: "990674251976",
+            appId: "1:990674251976:web:4ecf0da10934e45dd4b5fd",
+            measurementId: "G-KPBR13NFH6"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -46,15 +85,19 @@
 
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
+
+            const email = loginForm.email.value;
+            const password = loginForm.password.value;
 
             try {
-                await signInWithEmailAndPassword(auth, email, password);
-                alert('Login successful!');
-                window.location.href = 'index.html'; // Redirect to the main page
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                console.log("Login successful:", user);
+                // Redirect to home page or desired page after login
+                window.location.href = "index.html";
             } catch (error) {
-                alert('Login failed: ' + error.message);
+                console.error("Login error:", error.message);
+                alert("Login failed: " + error.message);
             }
         });
     </script>
