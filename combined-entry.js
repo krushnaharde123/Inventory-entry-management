@@ -16,8 +16,8 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
+
+// Initialize Firebase Storage
 const storage = getStorage(app); // Initialize Firebase Storage
 
 document.addEventListener('DOMContentLoaded', function () {
