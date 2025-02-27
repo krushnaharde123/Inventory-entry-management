@@ -56,16 +56,27 @@ document.addEventListener('DOMContentLoaded', function () {
         '5SL7-K': ['15KA']
     };
 
-    productFamilySelect?.addEventListener('change', updateBreakingCapacityOptions);
-    addEntryButton?.addEventListener('click', addEntry);
-    previewInventoryFileButton?.addEventListener('click', previewInventoryFile);
-    generateInventoryFileButton?.addEventListener('click', generateInventoryFile);
+    // Initialize breaking capacity options on page load for MCB Entry
+    function initializeBreakingCapacity() {
+        if (productFamilySelect && breakingCapacitySelect) {
+            console.log("productFamilySelect and breakingCapacitySelect exist");
+            updateBreakingCapacityOptions(); // Call it immediately
+
+            productFamilySelect.addEventListener('change', updateBreakingCapacityOptions);
+        } else {
+            console.log("productFamilySelect or breakingCapacitySelect does not exist");
+        }
+    }
 
     function updateBreakingCapacityOptions() {
+        if (!productFamilySelect || !breakingCapacitySelect) {
+            console.warn("productFamilySelect or breakingCapacitySelect is null in updateBreakingCapacityOptions");
+            return;
+        }
         const selectedFamily = productFamilySelect.value;
         console.log("Selected Product Family:", selectedFamily); // Debugging
         const capacities = breakingCapacityData[selectedFamily] || [];
-         console.log("Capacities for selected family:", capacities); // Debugging
+        console.log("Capacities for selected family:", capacities); // Debugging
         breakingCapacitySelect.innerHTML = '';
         capacities.forEach(capacity => {
             const option = document.createElement('option');
@@ -74,6 +85,13 @@ document.addEventListener('DOMContentLoaded', function () {
             breakingCapacitySelect.appendChild(option);
         });
     }
+
+    // Call initializeBreakingCapacity after the DOM is fully loaded
+    initializeBreakingCapacity();
+
+    addEntryButton?.addEventListener('click', addEntry);
+    previewInventoryFileButton?.addEventListener('click', previewInventoryFile);
+    generateInventoryFileButton?.addEventListener('click', generateInventoryFile);
 
     async function addEntry() {
         const polarity = polaritySelect.value;
@@ -537,90 +555,4 @@ document.addEventListener('DOMContentLoaded', function () {
             deleteFile(fileName, type);
         }
     });
-
-    // Initialize breaking capacity options on page load for MCB Entry
-    if (productFamilySelect) {
-         console.log("productFamilySelect exists");
-        updateBreakingCapacityOptions();
-    } else {
-         console.log("productFamilySelect does not exist");
-    }
-
-    // Load file lists on page load for Physical Counting
-    const mcbTab = document.getElementById('mcb-tab');
-    const cartonTab = document.getElementById('carton-tab');
-
-    if (mcbTab) {
-        const mcbTableBody = mcbTab.querySelector('tbody');
-        listFiles('mcb', mcbTableBody);
-    }
-
-    if (cartonTab) {
-        const cartonTableBody = cartonTab.querySelector('tbody');
-        listFiles('carton', cartonTableBody);
-    }
-     // Function to save MCB entries to localStorage (called from Physical Counting page)
-     window.saveMcbEntries = async function () {
-        if (allEntries.length === 0) {
-            alert('No MCB entries to save.');
-            return;
-        }
-
-        const fileName = prompt("Please enter the file name:", "inventory");
-        if (fileName === null || fileName === "") {
-            return;
-        }
-
-        const csvHeader = "Polarity,Rating,Product Family,Breaking Capacity,Quantity,Location";
-        const csvRows = allEntries.map(entry => `${entry.polarity},${entry.rating},${entry.productFamily},${entry.breakingCapacity},${entry.quantity},${entry.location}`).join('\n');
-        const csvContent = `${csvHeader}\n${csvRows}`;
-
-        // Create a Blob from the CSV content
-        const blob = new Blob([csvContent], { type: 'text/csv' });
-        const storageRef = ref(storage, `mcbFiles/${fileName}.csv`);
-
-        try {
-            await uploadBytes(storageRef, blob);
-            console.log('Uploaded a blob or file!');
-            alert('MCB entries saved to Firebase Storage successfully!');
-            allEntries = [];
-            displayMcbEntries();
-            listFiles('mcb', document.querySelector('#mcb-tab tbody'));
-        } catch (error) {
-            console.error("Error uploading file: ", error);
-            alert('Error saving MCB entries to Firebase Storage.');
-        }
-    };
-     // Function to save Carton entries to localStorage (called from Physical Counting page)
-     window.saveCartonEntries = async function () {
-          if (allCartonEntries.length === 0) {
-            alert('No entries to generate.');
-            return;
-        }
-        const fileName = prompt("Please enter the file name:", "carton");
-        if (fileName === null || fileName === "") {
-            return;
-        }
-
-        const csvHeader = "Material Number,Material Description,Quantity,Location";
-        const csvRows = allCartonEntries.map(entry => `${entry.number},${entry.description},${entry.quantity},${entry.location}`).join('\n');
-        const csvContent = `${csvHeader}\n${csvRows}`;
-
-        // Create a Blob from the CSV content
-        const blob = new Blob([csvContent], { type: 'text/csv' });
-
-        const storageRef = ref(storage, `cartonFiles/${fileName}.csv`);
-
-        try {
-            await uploadBytes(storageRef, blob);
-            console.log('Uploaded a blob or file!');
-            alert('Carton entries saved to Firebase Storage successfully!');
-            allCartonEntries = [];
-            displayCartonEntries();
-            listFiles('carton', document.querySelector('#carton-tab tbody'));
-        } catch (error) {
-            console.error("Error uploading file: ", error);
-            alert('Error saving Carton entries to Firebase Storage.');
-        }
-    };
 });
