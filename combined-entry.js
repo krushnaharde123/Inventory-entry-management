@@ -1,30 +1,30 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
 
+// Your web app's Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyCu3QPSWVPn4ShOGrWF1V0AAzylEnsrlj0",
-    authDomain: "inventory-67dc6.firebaseapp.com",
-    projectId: "inventory-67dc6",
-    storageBucket: "inventory-67dc6.firebasestorage.app",
-    messagingSenderId: "990674251976",
-    appId: "1:990674251976:web:4ecf0da10934e45dd4b5fd",
-    measurementId: "G-KPBR13NFH6"
+    apiKey: "AIzaSyDXZDJGiNudokW6h04TornneQt5_xtep6Y",
+    authDomain: "inventory-management-b330b.firebaseapp.com",
+    projectId: "inventory-management-b330b",
+    storageBucket: "inventory-management-b330b.firebasestorage.app",
+    messagingSenderId: "863294594287",
+    appId: "1:863294594287:web:49b1e9567abe0939544f1a",
+    measurementId: "G-E7H9J01X63"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
 document.addEventListener('DOMContentLoaded', function () {
-    // Check if user is logged in
+
     // onAuthStateChanged(auth, (user) => {
     //     if (!user) {
-    //         // Redirect to login page if not logged in
-    //         window.location.href = "login.html";
+    //         window.location.href = 'login.html'; // Redirect to login if not authenticated
     //     }
     // });
-
     // MCB Entry Page Logic
     const productFamilySelect = document.getElementById('product-family');
     const breakingCapacitySelect = document.getElementById('breaking-capacity');
@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    function addEntry() {
+    async function addEntry() {
         const polarity = polaritySelect.value;
         const rating = ratingSelect.value;
         const productFamily = productFamilySelect.value;
@@ -85,16 +85,25 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const entry = { polarity, rating, productFamily, breakingCapacity, quantity, location };
-        allEntries.push(entry);
-        lastEntry = entry;
-        displayLastMcbEntry(); // Added this line
-        // Reset form fields
-        polaritySelect.value = '';
-        ratingSelect.value = '';
-        productFamilySelect.value = '';
-        updateBreakingCapacityOptions();
-        quantityInput.value = '';
-        locationInput.value = '';
+
+        try {
+            // Add a new document with a generated id.
+            const docRef = await addDoc(collection(db, "mcbEntries"), entry);
+            console.log("Document written with ID: ", docRef.id);
+            allEntries.push({id: docRef.id, ...entry}); // Store with ID
+            lastEntry = {id: docRef.id, ...entry};
+            displayLastMcbEntry(); //Update display
+             // Reset form fields
+            polaritySelect.value = '';
+            ratingSelect.value = '';
+            productFamilySelect.value = '';
+            updateBreakingCapacityOptions();
+            quantityInput.value = '';
+            locationInput.value = '';
+        } catch (e) {
+            console.error("Error adding document: ", e);
+            alert('Error adding entry to Firestore.');
+        }
     }
 
     function displayLastMcbEntry() {
@@ -108,14 +117,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 <td>${lastEntry.breakingCapacity}</td>
                 <td>${lastEntry.quantity}</td>
                 <td>${lastEntry.location}</td>
-                <td><button class="edit-entry">Edit</button></td>
+                <td><button class="edit-entry" data-id="${lastEntry.id}">Edit</button></td>
             `;
             entryTableBody.appendChild(row);
         }
     }
 
-    // Function to display MCB entries
-    function displayMcbEntries() {
+
+    async function displayMcbEntries() {
         entryTableBody.innerHTML = '';
         allEntries.forEach((entry, index) => { // Loop through all entries
             const row = document.createElement('tr');
@@ -135,22 +144,40 @@ document.addEventListener('DOMContentLoaded', function () {
     // Edit entry functionality
     entryTableBody?.addEventListener('click', function(event) {
         if (event.target.classList.contains('edit-entry')) {
-            editEntry();
+            editEntry(event.target.dataset.id);
         }
     });
 
-    function editEntry() {
-        if (lastEntry) {
-            // Populate the form with the last entry's data
-            polaritySelect.value = lastEntry.polarity;
-            ratingSelect.value = lastEntry.rating;
-            productFamilySelect.value = lastEntry.productFamily;
-            updateBreakingCapacityOptions();
-            breakingCapacitySelect.value = lastEntry.breakingCapacity;
-            quantityInput.value = lastEntry.quantity;
-            locationInput.value = lastEntry.location;
+    async function editEntry(entryId) {
+        if (!entryId) {
+            console.warn("No entry ID provided for editing.");
+            return;
+        }
+        try {
+            // Retrieve the entry from Firestore
+            const entryDoc = allEntries.find(entry => entry.id === entryId);
 
-            displayLastMcbEntry();
+            if (entryDoc) {
+                // Populate the form with the entry's data
+                polaritySelect.value = entryDoc.polarity;
+                ratingSelect.value = entryDoc.rating;
+                productFamilySelect.value = entryDoc.productFamily;
+                updateBreakingCapacityOptions();
+                breakingCapacitySelect.value = entryDoc.breakingCapacity;
+                quantityInput.value = entryDoc.quantity;
+                locationInput.value = entryDoc.location;
+
+                // Set the lastEntry to the current entry
+                lastEntry = entryDoc;
+
+                displayLastMcbEntry();
+            } else {
+                console.error("Entry not found in Firestore.");
+                alert("Entry not found. Please refresh the page.");
+            }
+        } catch (error) {
+            console.error("Error fetching entry from Firestore:", error);
+            alert("Failed to fetch entry for editing.");
         }
     }
 
@@ -163,7 +190,6 @@ document.addEventListener('DOMContentLoaded', function () {
         generateInventoryFileButton.style.display = 'inline-block';
     }
 
-    // Save all entries to a single file in Firestore.
     async function generateInventoryFile() {
         if (allEntries.length === 0) {
             alert('No entries to generate.');
@@ -180,19 +206,11 @@ document.addEventListener('DOMContentLoaded', function () {
         const csvContent = `${csvHeader}\n${csvRows}`;
 
         try {
-            // Get the current user
-            // const user = auth.currentUser;
-            // if (!user) {
-            //     alert('User not logged in.');
-            //     return;
-            // }
-
             // Add the file to Firestore
             await addDoc(collection(db, 'mcbFiles'), {
                 fileName: `${fileName}.csv`,
                 content: csvContent,
                 createdAt: new Date(),
-                // uid: user.uid // Associate the file with the user  <-- REMOVE THIS LINE
             });
 
             alert('MCB entries saved to Firestore successfully!');
@@ -228,7 +246,7 @@ document.addEventListener('DOMContentLoaded', function () {
     saveCartonFileButton?.addEventListener('click', saveCartonFile);
 
     // Load the excel data from local storage
-    window.onload = function() {
+    window.onload = async function() {
         const storedData = localStorage.getItem(MASTER_FILE_KEY);
         if (storedData) {
             materialData = JSON.parse(storedData);
@@ -297,7 +315,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
 
-    function addCartonEntry() {
+    async function addCartonEntry() {
         const number = materialNumberInput.value;
         const description = materialDescriptionInput.value;
         const quantity = cartonQuantityInput.value;
@@ -309,17 +327,26 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const entry = { number, description, quantity, location };
-        allCartonEntries.push(entry);
-        lastCartonEntry = entry;
-        displayLastCartonEntry();//displayCartonEntries(); // Removed this line
 
-        materialNumberInput.value = '';
-        materialDescriptionInput.value = '';
-        cartonQuantityInput.value = '';
-        cartonLocationInput.value = '';
+         try {
+            // Add a new document with a generated id.
+            const docRef = await addDoc(collection(db, "cartonEntries"), entry);
+            console.log("Document written with ID: ", docRef.id);
+            allCartonEntries.push({id: docRef.id, ...entry}); // Store with ID
+            lastCartonEntry = {id: docRef.id, ...entry};
+            displayLastCartonEntry(); // Update display
+             // Reset form fields
+            materialNumberInput.value = '';
+            materialDescriptionInput.value = '';
+            cartonQuantityInput.value = '';
+            cartonLocationInput.value = '';
+        } catch (e) {
+            console.error("Error adding document: ", e);
+            alert('Error adding entry to Firestore.');
+        }
     }
 
-     function displayLastCartonEntry() {
+    function displayLastCartonEntry() {
         cartonEntryTableBody.innerHTML = '';
         if (lastCartonEntry) {
             const row = document.createElement('tr');
@@ -328,13 +355,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 <td>${lastCartonEntry.description}</td>
                 <td>${lastCartonEntry.quantity}</td>
                 <td>${lastCartonEntry.location}</td>
-                <td><button class="edit-carton-entry">Edit</button></td>
+                <td><button class="edit-carton-entry" data-id="${lastCartonEntry.id}">Edit</button></td>
             `;
             cartonEntryTableBody.appendChild(row);
         }
     }
 
-    function displayCartonEntries() {
+    async function displayCartonEntries() {
         cartonEntryTableBody.innerHTML = '';
         allCartonEntries.forEach((entry, index) => {
             const row = document.createElement('tr');
@@ -352,18 +379,36 @@ document.addEventListener('DOMContentLoaded', function () {
     // Edit carton entry functionality
     cartonEntryTableBody?.addEventListener('click', function(event) {
         if (event.target.classList.contains('edit-carton-entry')) {
-            editCartonEntry();
+            editCartonEntry(event.target.dataset.id);
         }
     });
 
-    function editCartonEntry() {
-         if (lastCartonEntry) {
-            materialNumberInput.value = lastCartonEntry.number;
-            materialDescriptionInput.value = lastCartonEntry.description;
-            cartonQuantityInput.value = lastCartonEntry.quantity;
-            cartonLocationInput.value = lastCartonEntry.location;
+    async function editCartonEntry(entryId) {
+         if (!entryId) {
+            console.warn("No entry ID provided for editing.");
+            return;
+        }
+        try {
+            // Retrieve the entry from Firestore
+            const entryDoc = allCartonEntries.find(entry => entry.id === entryId);
 
-            displayLastCartonEntry();
+            if (entryDoc) {
+                 materialNumberInput.value = entryDoc.number;
+                materialDescriptionInput.value = entryDoc.description;
+                cartonQuantityInput.value = entryDoc.quantity;
+                cartonLocationInput.value = entryDoc.location;
+
+                // Set the lastEntry to the current entry
+                lastCartonEntry = entryDoc;
+
+                displayLastCartonEntry();
+            } else {
+                console.error("Entry not found in Firestore.");
+                alert("Entry not found. Please refresh the page.");
+            }
+        } catch (error) {
+            console.error("Error fetching entry from Firestore:", error);
+            alert("Failed to fetch entry for editing.");
         }
     }
 
@@ -376,7 +421,7 @@ document.addEventListener('DOMContentLoaded', function () {
         saveCartonFileButton.style.display = 'inline-block';
     }
 
-    // Save the Carton file in Firestore
+    // Save the Carton file
     async function saveCartonFile() {
         if (allCartonEntries.length === 0) {
             alert('No entries to generate.');
@@ -391,20 +436,12 @@ document.addEventListener('DOMContentLoaded', function () {
         const csvRows = allCartonEntries.map(entry => `${entry.number},${entry.description},${entry.quantity},${entry.location}`).join('\n');
         const csvContent = `${csvHeader}\n${csvRows}`;
 
-        try {
-            // Get the current user
-            // const user = auth.currentUser;
-            // if (!user) {
-            //     alert('User not logged in.');
-            //     return;
-            // }
-
+         try {
             // Add the file to Firestore
             await addDoc(collection(db, 'cartonFiles'), {
                 fileName: `${fileName}.csv`,
                 content: csvContent,
                 createdAt: new Date(),
-                //  uid: user.uid // Associate the file with the user  <-- REMOVE THIS LINE
             });
 
             alert('Carton entries saved to Firestore successfully!');
@@ -423,13 +460,6 @@ document.addEventListener('DOMContentLoaded', function () {
         let files = [];
 
         try {
-            // Get the current user
-            // const user = auth.currentUser;
-            // if (!user) {
-            //     alert('User not logged in.');
-            //     return;
-            // }
-
             let querySnapshot;
             if (type === 'mcb') {
                 querySnapshot = await getDocs(collection(db, 'mcbFiles'));
@@ -438,10 +468,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             querySnapshot.forEach((doc) => {
-                // Filter files by user ID
-                // if (doc.data().uid === user.uid) {   <-- REMOVE THIS LINE
-                    files.push({ id: doc.id, ...doc.data() }); // Store the doc.id()
-                // }   <-- REMOVE THIS LINE
+                files.push({ id: doc.id, ...doc.data() });
             });
 
             if (!files || files.length === 0) {
@@ -452,14 +479,14 @@ document.addEventListener('DOMContentLoaded', function () {
             files.forEach((file, index) => {
                 const row = document.createElement('tr');
                 row.classList.add('bold');
-                const fileDate = new Date(file.createdAt.toDate()); // Convert Firebase Timestamp to JavaScript Date
+                const fileDate = new Date(file.createdAt.toDate());
                 const formattedDate = fileDate.toLocaleDateString('en-US', {
                     year: 'numeric',
                     month: 'short',
                     day: 'numeric',
                     hour: '2-digit',
                     minute: '2-digit',
-                    hour12: false // Use 24-hour format
+                    hour12: false
                 });
 
                 row.innerHTML = `
@@ -488,9 +515,9 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             let file;
-             querySnapshot.forEach((doc) => {
+            querySnapshot.forEach((doc) => {
                 if (doc.id === fileId) {
-                    file = { id: doc.id, ...doc.data() }; // Store the doc.id()
+                    file = { id: doc.id, ...doc.data() };
                 }
             });
 
@@ -512,12 +539,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // Delete file from Firestore
     async function deleteFileLocal(index, type, fileId) {
         try {
-            // Get the current user
-            // const user = auth.currentUser;
-            // if (!user) {
-            //     alert('User not logged in.');
-            //     return;
-            // }
             if (type === 'mcb') {
                 await deleteDoc(doc(db, "mcbFiles", fileId));
             } else if (type === 'carton') {
@@ -527,7 +548,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const tableBody = (type === 'mcb')
                 ? document.querySelector('#mcb-tab tbody')
                 : document.querySelector('#carton-tab tbody');
-            await listFiles(type, tableBody);
+            listFiles(type, tableBody);
         } catch (error) {
             console.error("Error deleting file from Firestore:", error);
             alert('Failed to delete file from Firestore: ' + error.message);
@@ -544,7 +565,7 @@ document.addEventListener('DOMContentLoaded', function () {
         } else if (event.target.classList.contains('delete-file')) {
             const index = parseInt(event.target.dataset.index);
             const type = event.target.dataset.type;
-             const fileId = event.target.dataset.fileId;
+            const fileId = event.target.dataset.fileId;
             deleteFileLocal(index, type, fileId);
         }
     });
@@ -567,9 +588,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const cartonTableBody = cartonTab.querySelector('tbody');
         listFiles('carton', cartonTableBody);
     }
-     // Function to save MCB entries to Firestore (called from Physical Counting page)
+     // Function to save MCB entries to localStorage (called from Physical Counting page)
      window.saveMcbEntries = async function () {
-         if (allEntries.length === 0) {
+        if (allEntries.length === 0) {
             alert('No MCB entries to save.');
             return;
         }
@@ -583,20 +604,12 @@ document.addEventListener('DOMContentLoaded', function () {
         const csvRows = allEntries.map(entry => `${entry.polarity},${entry.rating},${entry.productFamily},${entry.breakingCapacity},${entry.quantity},${entry.location}`).join('\n');
         const csvContent = `${csvHeader}\n${csvRows}`;
 
-        try {
-            // Get the current user
-            // const user = auth.currentUser;
-            // if (!user) {
-            //     alert('User not logged in.');
-            //     return;
-            // }
-
+         try {
             // Add the file to Firestore
             await addDoc(collection(db, 'mcbFiles'), {
                 fileName: `${fileName}.csv`,
                 content: csvContent,
                 createdAt: new Date(),
-                // uid: user.uid // Associate the file with the user  <-- REMOVE THIS LINE
             });
 
             alert('MCB entries saved to Firestore successfully!');
@@ -608,7 +621,7 @@ document.addEventListener('DOMContentLoaded', function () {
             alert('Failed to save MCB entries to Firestore: ' + error.message);
         }
     };
-     // Function to save Carton entries to Firestore (called from Physical Counting page)
+     // Function to save Carton entries to localStorage (called from Physical Counting page)
      window.saveCartonEntries = async function () {
           if (allCartonEntries.length === 0) {
             alert('No entries to generate.');
@@ -623,20 +636,12 @@ document.addEventListener('DOMContentLoaded', function () {
         const csvRows = allCartonEntries.map(entry => `${entry.number},${entry.description},${entry.quantity},${entry.location}`).join('\n');
         const csvContent = `${csvHeader}\n${csvRows}`;
 
-        try {
-            // Get the current user
-            // const user = auth.currentUser;
-            // if (!user) {
-            //     alert('User not logged in.');
-            //     return;
-            // }
-
+         try {
             // Add the file to Firestore
             await addDoc(collection(db, 'cartonFiles'), {
                 fileName: `${fileName}.csv`,
                 content: csvContent,
                 createdAt: new Date(),
-                //  uid: user.uid // Associate the file with the user  <-- REMOVE THIS LINE
             });
 
             alert('Carton entries saved to Firestore successfully!');
