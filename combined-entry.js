@@ -243,7 +243,7 @@ document.addEventListener('DOMContentLoaded', function () {
     previewCartonFileButton?.addEventListener('click', previewCartonFile);
     saveCartonFileButton?.addEventListener('click', saveCartonFile);
 
-    // Load the excel data from local storage
+       // Load the excel data from local storage
     window.onload = async function() {
         const storedData = localStorage.getItem(MASTER_FILE_KEY);
         if (storedData) {
@@ -271,13 +271,19 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function populateMaterialList() {
-        materialList.innerHTML = '';
-        materialData.forEach(item => {
-            const option = document.createElement('option');
-            option.value = item['Material number'];
-            materialList.appendChild(option);
-        });
+        const materialList = document.getElementById('material-list'); // Get the element here
+        if (materialList) {
+            materialList.innerHTML = '';
+            materialData.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item['Material number'];
+                materialList.appendChild(option);
+            });
+        } else {
+            console.error("materialList element not found in the DOM.");
+        }
     }
+
 
    function handleMaterialNumberInput() {
         const number = materialNumberInput.value;
@@ -312,6 +318,41 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+
+       async function addEntry() {
+        const polarity = polaritySelect.value;
+        const rating = ratingSelect.value;
+        const productFamily = productFamilySelect.value;
+        const breakingCapacity = breakingCapacitySelect.value;
+        const quantity = quantityInput.value;
+        const location = locationInput.value;
+
+        if (!polarity || !rating || !productFamily || !breakingCapacity || !quantity || !location) {
+            alert('Please fill all fields before adding entry.');
+            return;
+        }
+
+        const entry = { polarity, rating, productFamily, breakingCapacity, quantity, location };
+
+        try {
+            // Add a new document with a generated id.
+            const docRef = await addDoc(collection(db, "mcbEntries"), entry);
+            console.log("Document written with ID: ", docRef.id);
+            allEntries.push({id: docRef.id, ...entry}); // Store with ID
+            lastEntry = {id: docRef.id, ...entry};
+            displayLastMcbEntry(); //Update display
+             // Reset form fields
+            polaritySelect.value = '';
+            ratingSelect.value = '';
+            productFamilySelect.value = '';
+            updateBreakingCapacityOptions();
+            quantityInput.value = '';
+            locationInput.value = '';
+        } catch (e) {
+            console.error("Error adding document: ", e);
+            alert('Error adding entry to Firestore.');
+        }
+    }
 
     async function addCartonEntry() {
         const number = materialNumberInput.value;
