@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="header">
+        <div class="logo">SIEMENS</div>
+    </div>
+    <div class="content">
+        <h1>Sign Up</h1>
+        <form id="signup-form">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" required>
+            </div>
+            <button type="submit">Sign Up</button>
+        </form>
+        <p>Already have an account? <a href="login.html">Login</a></p>
+    </div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDXZDJGiNudokW6h04TornneQt5_xtep6Y",
+            authDomain: "inventory-management-b330b.firebaseapp.com",
+            projectId: "inventory-management-b330b",
+            storageBucket: "inventory-management-b330b.firebasestorage.app",
+            messagingSenderId: "863294594287",
+            appId: "1:863294594287:web:49b1e9567abe0939544f1a",
+            measurementId: "G-E7H9J01X63"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        const signupForm = document.getElementById('signup-form');
+
+        signupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+                alert('Sign up successful!');
+                window.location.href = 'index.html'; // Redirect to the main page
+            } catch (error) {
+                alert('Sign up failed: ' + error.message);
+            }
+        });
+    </script>
+</body>
+</html>
