@@ -611,5 +611,3 @@ document.addEventListener('DOMContentLoaded', function () {
         uploadFile(file, 'carton');
     };
 });
-
-import { query, where } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
