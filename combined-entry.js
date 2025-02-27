@@ -63,7 +63,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function updateBreakingCapacityOptions() {
         const selectedFamily = productFamilySelect.value;
+        console.log("Selected Product Family:", selectedFamily); // Debugging
         const capacities = breakingCapacityData[selectedFamily] || [];
+         console.log("Capacities for selected family:", capacities); // Debugging
         breakingCapacitySelect.innerHTML = '';
         capacities.forEach(capacity => {
             const option = document.createElement('option');
@@ -538,7 +540,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Initialize breaking capacity options on page load for MCB Entry
     if (productFamilySelect) {
+         console.log("productFamilySelect exists");
         updateBreakingCapacityOptions();
+    } else {
+         console.log("productFamilySelect does not exist");
     }
 
     // Load file lists on page load for Physical Counting
