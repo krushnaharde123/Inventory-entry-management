@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCu3QPSWVPn4ShOGrWF1V0AAzylEnsrlj0",
@@ -18,12 +18,12 @@ const auth = getAuth(app);
 
 document.addEventListener('DOMContentLoaded', function () {
     // Check if user is logged in
-    onAuthStateChanged(auth, (user) => {
-        if (!user) {
-            // Redirect to login page if not logged in
-            window.location.href = "login.html";
-        }
-    });
+    // onAuthStateChanged(auth, (user) => {
+    //     if (!user) {
+    //         // Redirect to login page if not logged in
+    //         window.location.href = "login.html";
+    //     }
+    // });
 
     // MCB Entry Page Logic
     const productFamilySelect = document.getElementById('product-family');
@@ -181,18 +181,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
             // Get the current user
-            const user = auth.currentUser;
-            if (!user) {
-                alert('User not logged in.');
-                return;
-            }
+            // const user = auth.currentUser;
+            // if (!user) {
+            //     alert('User not logged in.');
+            //     return;
+            // }
 
             // Add the file to Firestore
             await addDoc(collection(db, 'mcbFiles'), {
                 fileName: `${fileName}.csv`,
                 content: csvContent,
                 createdAt: new Date(),
-                uid: user.uid // Associate the file with the user
+                // uid: user.uid // Associate the file with the user  <-- REMOVE THIS LINE
             });
 
             alert('MCB entries saved to Firestore successfully!');
@@ -393,18 +393,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
             // Get the current user
-            const user = auth.currentUser;
-            if (!user) {
-                alert('User not logged in.');
-                return;
-            }
+            // const user = auth.currentUser;
+            // if (!user) {
+            //     alert('User not logged in.');
+            //     return;
+            // }
 
             // Add the file to Firestore
             await addDoc(collection(db, 'cartonFiles'), {
                 fileName: `${fileName}.csv`,
                 content: csvContent,
                 createdAt: new Date(),
-                uid: user.uid // Associate the file with the user
+                //  uid: user.uid // Associate the file with the user  <-- REMOVE THIS LINE
             });
 
             alert('Carton entries saved to Firestore successfully!');
@@ -424,11 +424,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
             // Get the current user
-            const user = auth.currentUser;
-            if (!user) {
-                alert('User not logged in.');
-                return;
-            }
+            // const user = auth.currentUser;
+            // if (!user) {
+            //     alert('User not logged in.');
+            //     return;
+            // }
 
             let querySnapshot;
             if (type === 'mcb') {
@@ -439,9 +439,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
             querySnapshot.forEach((doc) => {
                 // Filter files by user ID
-                if (doc.data().uid === user.uid) {
+                // if (doc.data().uid === user.uid) {   <-- REMOVE THIS LINE
                     files.push({ id: doc.id, ...doc.data() }); // Store the doc.id()
-                }
+                // }   <-- REMOVE THIS LINE
             });
 
             if (!files || files.length === 0) {
@@ -513,11 +513,11 @@ document.addEventListener('DOMContentLoaded', function () {
     async function deleteFileLocal(index, type, fileId) {
         try {
             // Get the current user
-            const user = auth.currentUser;
-            if (!user) {
-                alert('User not logged in.');
-                return;
-            }
+            // const user = auth.currentUser;
+            // if (!user) {
+            //     alert('User not logged in.');
+            //     return;
+            // }
             if (type === 'mcb') {
                 await deleteDoc(doc(db, "mcbFiles", fileId));
             } else if (type === 'carton') {
@@ -585,18 +585,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
             // Get the current user
-            const user = auth.currentUser;
-            if (!user) {
-                alert('User not logged in.');
-                return;
-            }
+            // const user = auth.currentUser;
+            // if (!user) {
+            //     alert('User not logged in.');
+            //     return;
+            // }
 
             // Add the file to Firestore
             await addDoc(collection(db, 'mcbFiles'), {
                 fileName: `${fileName}.csv`,
                 content: csvContent,
                 createdAt: new Date(),
-                uid: user.uid // Associate the file with the user
+                // uid: user.uid // Associate the file with the user  <-- REMOVE THIS LINE
             });
 
             alert('MCB entries saved to Firestore successfully!');
@@ -625,18 +625,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
             // Get the current user
-            const user = auth.currentUser;
-            if (!user) {
-                alert('User not logged in.');
-                return;
-            }
+            // const user = auth.currentUser;
+            // if (!user) {
+            //     alert('User not logged in.');
+            //     return;
+            // }
 
             // Add the file to Firestore
             await addDoc(collection(db, 'cartonFiles'), {
                 fileName: `${fileName}.csv`,
                 content: csvContent,
                 createdAt: new Date(),
-                uid: user.uid // Associate the file with the user
+                //  uid: user.uid // Associate the file with the user  <-- REMOVE THIS LINE
             });
 
             alert('Carton entries saved to Firestore successfully!');
