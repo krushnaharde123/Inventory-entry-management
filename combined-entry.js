@@ -90,8 +90,9 @@ document.addEventListener('DOMContentLoaded', function () {
             // Add a new document with a generated id.
             const docRef = await addDoc(collection(db, "mcbEntries"), entry);
             console.log("Document written with ID: ", docRef.id);
-            allEntries.push({id: docRef.id, ...entry}); // Store with ID
-            lastEntry = {id: docRef.id, ...entry};
+            const newEntry = {id: docRef.id, ...entry};
+            allEntries.push(newEntry); // Store with ID
+            lastEntry = newEntry;
             displayLastMcbEntry(); //Update display
              // Reset form fields
             polaritySelect.value = '';
@@ -339,8 +340,9 @@ document.addEventListener('DOMContentLoaded', function () {
             // Add a new document with a generated id.
             const docRef = await addDoc(collection(db, "cartonEntries"), entry);
             console.log("Document written with ID: ", docRef.id);
-            allCartonEntries.push({id: docRef.id, ...entry}); // Store with ID
-            lastCartonEntry = {id: docRef.id, ...entry};
+             const newEntry = {id: docRef.id, ...entry};
+            allCartonEntries.push(newEntry); // Store with ID
+            lastCartonEntry = newEntry;
             displayLastCartonEntry(); // Update display
              // Reset form fields
             materialNumberInput.value = '';
