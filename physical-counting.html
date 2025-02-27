@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Physical Counting</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="combined-entry.js" defer></script>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">SIEMENS</div>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="entry.html">MCB Entry</a></li>
+                <li><a href="carton-entry.html">Carton Entry</a></li>
+                <li><a href="physical-counting.html">Physical Counting</a></li>
+            </ul>
+        </nav>
+    </div>
+    <div class="sidebar">
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="entry.html">MCB Entry</a></li>
+            <li><a href="carton-entry.html">Carton Entry</a></li>
+            <li><a href="physical-counting.html">Physical Counting</a></li>
+        </ul>
+    </div>
+    <div class="content">
+        <h1>Physical Counting</h1>
+        <div class="tabs">
+            <button class="tab-button" onclick="openTab(event, 'mcb-tab')">MCB Entry Files</button>
+            <button class="tab-button" onclick="openTab(event, 'carton-tab')">Carton Entry Files</button>
+        </div>
+        <div id="mcb-tab" class="tab-content">
+            <h2>MCB Entry Files</h2>
+            <button onclick="saveMcbEntries()">Save MCB Entries</button>
+            <div id="loading-indicator" style="display:none;">Loading...</div>
+            <table id="entry-table">
+                <thead>
+                    <tr>
+                        <th>File Name</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div id="carton-tab" class="tab-content">
+            <h2>Carton Entry Files</h2>
+             <button onclick="saveCartonEntries()">Save Carton Entries</button>
+            <table id="carton-entry-table">
+                <thead>
+                    <tr>
+                        <th>File Name</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+    <script>
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            tablinks = document.getElementsByClassName("tab-button");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelector('.tab-button').click();
+        });
+    </script>
+</body>
+</html>

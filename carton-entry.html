@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carton Entry</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="combined-entry.js" defer></script>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">SIEMENS</div>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="entry.html">MCB Entry</a></li>
+                <li><a href="carton-entry.html">Carton Entry</a></li>
+                <li><a href="physical-counting.html">Physical Counting</a></li>
+            </ul>
+        </nav>
+    </div>
+    <div class="sidebar">
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="entry.html">MCB Entry</a></li>
+            <li><a href="carton-entry.html">Carton Entry</a></li>
+            <li><a href="physical-counting.html">Physical Counting</a></li>
+        </ul>
+    </div>
+    <div class="content">
+        <h1>Carton Entry</h1>
+        <form id="carton-entry-form">
+            <div class="form-group">
+                <label for="carton-master-file">Upload Master Excel File</label>
+                <input type="file" id="carton-master-file" accept=".xlsx, .xls">
+            </div>
+            <div class="form-group">
+                <label for="material-number">Material Number</label>
+                <input type="text" id="material-number" placeholder="Enter Material Number to search..." list="material-list">
+                <datalist id="material-list"></datalist>
+            </div>
+            <div class="form-group">
+                <label for="material-description">Material Description</label>
+                <input type="text" id="material-description" readonly>
+            </div>
+            <div class="form-group">
+                <label for="carton-quantity">Quantity</label>
+                <input type="number" id="carton-quantity" min="1">
+            </div>
+            <div class="form-group">
+                <label for="carton-location">Location</label>
+                <input type="text" id="carton-location">
+            </div>
+            <button type="button" id="add-carton-entry">Add Entry</button>
+        </form>
+        <table id="carton-entry-table">
+            <thead>
+                <tr>
+                    <th>Material Number</th>
+                    <th>Material Description</th>
+                    <th>Quantity</th>
+                    <th>Location</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <div class="action-buttons">
+            <button type="button" id="preview-carton-file">Preview Carton File</button>
+            <button type="button" id="save-carton-file" style="display: none;">Save Carton File</button>
+        </div>
+    </div>
+</body>
+</html>
